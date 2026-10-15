@@ -22,7 +22,7 @@ Para probarlo en tu celular dentro de la misma red Wi‑Fi: `npm run dev -- --ho
 
 | Constante | Para qué sirve |
 |---|---|
-| `PRODUCT_NAME` | Nombre visible del producto. Hoy es `[NOMBRE_PRODUCTO]`. |
+| `PRODUCT_NAME` | Nombre visible del producto: `Real Estate App`. |
 | `DEMO_MODE` | Con `true`, "Consultar por WhatsApp" muestra primero un aviso con el mensaje, porque los números de la semilla son ficticios. |
 | `FEEDBACK_WHATSAPP_NUMBER` | Opcional. Si se deja vacío (así viene), "Opinar" no abre WhatsApp: muestra un aviso de que en la app real se enviaría por WhatsApp, junto con el mensaje. Las respuestas quedan en `/#/debug` del teléfono. Si pones un número (solo dígitos y con código de país, por ejemplo `59170000000`), se abre WhatsApp hacia ese número. |
 
