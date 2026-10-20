@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildSeedListings } from '../seed/listings'
-import { listingLink, shareText } from './share'
+import { clientShareText, defaultShareMode, listingLink, shareText } from './share'
 
 const now = new Date(2026, 9, 15, 12)
 const listings = buildSeedListings(now)
@@ -32,6 +32,34 @@ describe('texto para compartir', () => {
     expect(text).toContain('💵 $us 140.000 · 800 m²')
     expect(text).not.toContain('🚗')
     expect(text.split('\n')).toHaveLength(5)
+  })
+
+  it('modo cliente: sin comisión, autorización, asesor ni link; contacto de quien comparte (C1)', () => {
+    const l = { ...byId('seed-01'), storage: false, bankCredit: false, ownerAuthorized: true, lastConfirmedAt: now.toISOString() }
+    const text = clientShareText(l, { name: 'Valeria Rojas', whatsapp: '+59170000009' }, now)
+    expect(text).toBe(
+      [
+        '🏠 Departamento en venta – Queru Queru',
+        '💵 $us 95.000 · 3 dorm · 2 baños · 110 m²',
+        '🚗 Garaje · 🐾 Acepta mascotas',
+        '✅ Disponible (confirmado hoy)',
+        '📲 Más información: Valeria Rojas · wa.me/59170000009',
+      ].join('\n'),
+    )
+    expect(text).not.toMatch(/comisi|Autorizado|Ver ficha|#\/p\//)
+    expect(text).not.toContain(l.agent.name)
+  })
+
+  it('modo cliente: sin línea de disponibilidad si no es reciente; con expensas en alquiler', () => {
+    const text = clientShareText(byId('seed-16'), { name: 'Valeria Rojas', whatsapp: '+59170000009' }, now)
+    expect(text).toContain('💵 Bs 2.900 / mes + Bs 200 de expensas')
+    expect(text).not.toContain('Disponible')
+    expect(text).not.toContain('Confirmado')
+  })
+
+  it('modo por defecto: propias para asesores, de otros para el cliente', () => {
+    expect(defaultShareMode({ isMine: true })).toBe('agents')
+    expect(defaultShareMode({ isMine: false })).toBe('client')
   })
 
   it('arma el link a la ficha con hash', () => {

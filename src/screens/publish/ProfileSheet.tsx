@@ -2,8 +2,24 @@ import { useState } from 'react'
 import { BottomSheet } from '../../components/BottomSheet'
 import type { Agent } from '../../domain/listing'
 
-/** Primera publicación: nombre y WhatsApp, guardados en el teléfono. Sin cuenta ni contraseña. */
-export function ProfileSheet({ open, onClose, onSave }: { open: boolean; onClose: () => void; onSave: (a: Agent) => void }) {
+interface Props {
+  open: boolean
+  onClose: () => void
+  onSave: (a: Agent) => void
+  title?: string
+  intro?: string
+  cta?: string
+}
+
+/** Nombre y WhatsApp, guardados en el teléfono. Sin cuenta ni contraseña. Se pide al publicar o al compartir con un cliente. */
+export function ProfileSheet({
+  open,
+  onClose,
+  onSave,
+  title = '¿Quién publica?',
+  intro = 'Solo la primera vez. Así otros asesores te pueden consultar por WhatsApp. No necesitas cuenta ni contraseña.',
+  cta = 'Guardar y publicar',
+}: Props) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [touched, setTouched] = useState(false)
@@ -21,14 +37,14 @@ export function ProfileSheet({ open, onClose, onSave }: { open: boolean; onClose
     <BottomSheet
       open={open}
       onClose={onClose}
-      title="¿Quién publica?"
+      title={title}
       footer={
         <button type="button" onClick={save} className="min-h-12 w-full rounded-xl bg-brand-600 text-base font-semibold text-white active:bg-brand-700">
-          Guardar y publicar
+          {cta}
         </button>
       }
     >
-      <p className="mb-3 text-sm text-slate-600">Solo la primera vez. Así otros asesores te pueden consultar por WhatsApp. No necesitas cuenta ni contraseña.</p>
+      <p className="mb-3 text-sm text-slate-600">{intro}</p>
       <label className="block text-sm font-medium text-slate-700">
         Tu nombre
         <input
