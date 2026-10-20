@@ -1,7 +1,7 @@
 import { ArrowLeft, Copy, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { DEMO_MODE, FEEDBACK_WHATSAPP_NUMBER, PRODUCT_NAME } from '../config'
+import { DEMO_MODE, PRODUCT_NAME } from '../config'
 import { useResetDemo } from '../hooks/useResetDemo'
 import { copyText } from '../lib/clipboard'
 import { currentSessionId, getEvents, summarizeEvents, type TrackedEvent } from '../store/events'
@@ -30,7 +30,6 @@ export function Debug() {
         <h2 className="font-semibold">Configuración (src/config.ts)</h2>
         <p>PRODUCT_NAME: {PRODUCT_NAME}</p>
         <p>DEMO_MODE: {String(DEMO_MODE)}</p>
-        <p>FEEDBACK_WHATSAPP_NUMBER: {FEEDBACK_WHATSAPP_NUMBER || '(vacío: el feedback se copia)'}</p>
         <p>
           Perfil: {state.profile ? `${state.profile.name} · ${state.profile.whatsapp}` : '(sin registrar)'} · Propiedades: {state.listings.length} (
           {state.listings.filter((l) => l.isMine).length} propias)

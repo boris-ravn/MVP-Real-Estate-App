@@ -1,5 +1,4 @@
 import { HashRouter, Route, Routes } from 'react-router'
-import { FeedbackButton } from './components/FeedbackButton'
 import { Debug } from './screens/Debug'
 import { Detail } from './screens/Detail'
 import { Home } from './screens/Home'
@@ -23,7 +22,6 @@ export default function App() {
             <Route path="/debug" element={<Debug />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <FeedbackButton />
         </HashRouter>
       </FiltersProvider>
     </StoreProvider>

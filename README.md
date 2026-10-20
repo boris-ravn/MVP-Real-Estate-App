@@ -11,7 +11,7 @@ Requiere Node 20 o superior.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # tests unitarios (parser, filtros, frescura, compartir, feedback…)
+npm test           # tests unitarios (parser, filtros, frescura, compartir…)
 npm run build      # build estático en dist/
 npm run preview    # sirve dist/ en http://localhost:4173
 ```
@@ -24,7 +24,6 @@ Para probarlo en tu celular dentro de la misma red Wi‑Fi: `npm run dev -- --ho
 |---|---|
 | `PRODUCT_NAME` | Nombre visible del producto: `Real Estate App`. |
 | `DEMO_MODE` | Con `true`, "Consultar por WhatsApp" muestra primero un aviso con el mensaje, porque los números de la semilla son ficticios. |
-| `FEEDBACK_WHATSAPP_NUMBER` | Opcional. Si se deja vacío (así viene), "Opinar" no abre WhatsApp: muestra un aviso de que en la app real se enviaría por WhatsApp, junto con el mensaje. Las respuestas quedan en `/#/debug` del teléfono. Si pones un número (solo dígitos y con código de país, por ejemplo `59170000000`), se abre WhatsApp hacia ese número. |
 
 Después de cambiar la configuración, vuelve a hacer el build y el deploy.
 
@@ -32,7 +31,7 @@ Después de cambiar la configuración, vuelve a hacer el build y el deploy.
 
 - **Reiniciar la demo entre participantes:** mantén presionado el logo de la pantalla de inicio unos segundos, o abre `/#/debug` y toca **Reiniciar demo**. Así se restauran las propiedades de ejemplo y se borran el perfil y los eventos.
 - **Ver qué hizo el participante:** en `/#/debug` aparecen los eventos agrupados por sesión, con el botón **Copiar eventos** (JSON).
-- **Feedback:** el botón flotante **Opinar** junta las 3 respuestas, el resumen de eventos de la sesión y cuántos campos detectó el parser. Sin número configurado, recupera las respuestas en `/#/debug` (evento `feedback_sent`, incluye el comentario) antes de tocar **Reiniciar demo**.
+- **Feedback:** se pide fuera de la app, en las preguntas de cierre de cada sesión (la app ya no tiene el botón **Opinar**). Antes de tocar **Reiniciar demo**, copia los eventos de `/#/debug`: incluyen cuántos campos detectó el parser.
 - **Tareas de la prueba (PRD §12):**
   1. Buscar un departamento en alquiler de 2 dormitorios, con garaje, que acepte mascotas y cueste hasta Bs 4.000 → la semilla tiene 3 resultados.
   2. Publicar pegando un mensaje de WhatsApp.
@@ -54,12 +53,12 @@ El bundle pesa ~110 KB con gzip y no usa fuentes ni imágenes externas, así que
 ```
 src/
   config.ts               configuración única (ver arriba)
-  domain/                 lógica pura y testeada: modelo, frescura, formato, filtros, borrador, WhatsApp, compartir, feedback
+  domain/                 lógica pura y testeada: modelo, frescura, formato, filtros, borrador, WhatsApp, compartir
   parser/parseListing.ts  "pegar mensaje → ficha" (regex + diccionarios; se puede cambiar por un LLM sin tocar la UI)
   seed/                   28 propiedades, 9 asesores ficticios y 8 mensajes de ejemplo; las fechas son relativas a hoy
   store/                  estado + localStorage, log de eventos y filtros
   screens/                Home (F1), Detail (F2/F3), Publish (F4), MyListings (F5), Debug
-  components/             tarjeta, hojas inferiores, compartir (F6), botón Opinar (F7)…
+  components/             tarjeta, hojas inferiores, compartir (F6)…
 ```
 
 ## Limitaciones conocidas del prototipo

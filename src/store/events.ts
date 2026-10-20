@@ -12,7 +12,6 @@ export type EventName =
   | 'publish_completed'
   | 'confirm_available'
   | 'mark_closed'
-  | 'feedback_sent'
 
 export interface TrackedEvent {
   name: EventName
@@ -48,8 +47,4 @@ export function summarizeEvents(events: TrackedEvent[]): string {
   const counts = new Map<EventName, number>()
   for (const e of events) counts.set(e.name, (counts.get(e.name) ?? 0) + 1)
   return [...counts].map(([name, n]) => `${name} ×${n}`).join(' · ')
-}
-
-export function sessionEvents(events: TrackedEvent[] = getEvents()): TrackedEvent[] {
-  return events.filter((e) => e.sessionId === sessionId)
 }
