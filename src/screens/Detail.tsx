@@ -84,6 +84,21 @@ function ListingSheet({ listing: l }: { listing: Listing }) {
         </p>
       </Block>
 
+      <Block icon={<Handshake size={18} />} title="Colaboración">
+        {l.commissionShare != null ? (
+          <p className="text-lg">
+            Comparte <span className="font-bold">{l.commissionShare}%</span> de la comisión
+          </p>
+        ) : (
+          <p className="text-slate-500 italic">Comisión compartida: sin dato (consúltalo al asesor)</p>
+        )}
+        {l.ownerAuthorized && (
+          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-sm font-medium text-brand-700 ring-1 ring-brand-100">
+            <ShieldCheck size={16} aria-hidden /> Autorizado por el propietario
+          </span>
+        )}
+      </Block>
+
       <Block icon={<House size={18} />} title="Características">
         <Facts
           rows={[
@@ -120,21 +135,6 @@ function ListingSheet({ listing: l }: { listing: Listing }) {
               : []),
           ]}
         />
-      </Block>
-
-      <Block icon={<Handshake size={18} />} title="Colaboración">
-        {l.commissionShare != null ? (
-          <p className="text-lg">
-            Comparte <span className="font-bold">{l.commissionShare}%</span> de la comisión
-          </p>
-        ) : (
-          <p className="text-slate-500 italic">Comisión compartida: sin dato (consúltalo al asesor)</p>
-        )}
-        {l.ownerAuthorized && (
-          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-sm font-medium text-brand-700 ring-1 ring-brand-100">
-            <ShieldCheck size={16} aria-hidden /> Autorizado por el propietario
-          </span>
-        )}
       </Block>
 
       <Block icon={<UserRound size={18} />} title="Asesor">
