@@ -2,8 +2,8 @@ import { AlertCircle, Bath, BedDouble, Car, Check, FileCheck, Landmark, MapPin, 
 import { Fragment, useState, type ReactNode } from 'react'
 import { Chip } from '../../components/Chip'
 import { PhotoPlaceholder } from '../../components/PhotoPlaceholder'
-import { draftSummary, growPending, relevantFields, REQUIRED_FIELDS, type Draft, type DraftField } from '../../domain/draft'
-import { currencyFor, OPERATION_LABELS, PHOTO_IDS, TYPE_LABELS, ZONES, type Operation, type PropertyType, type Zone } from '../../domain/listing'
+import { draftCurrency, draftSummary, growPending, relevantFields, REQUIRED_FIELDS, type Draft, type DraftField } from '../../domain/draft'
+import { OPERATION_LABELS, PHOTO_IDS, TYPE_LABELS, ZONES, type Operation, type PropertyType, type Zone } from '../../domain/listing'
 import { logEvent } from '../../store/events'
 
 const BOOL_ICONS: Partial<Record<DraftField, ReactNode>> = {
@@ -143,12 +143,18 @@ export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, 
       case 'price':
         return (
           <Field label="Precio *" {...status('price')}>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-slate-700">{d.operation ? (currencyFor(d.operation) === 'USD' ? '$us' : 'Bs') : '—'}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex gap-1" role="group" aria-label="Moneda">
+                {(['BOB', 'USD'] as const).map((c) => (
+                  <Chip key={c} active={draftCurrency(d) === c} onClick={() => set('currency', c)} className="min-w-14 px-3">
+                    {c === 'USD' ? '$us' : 'Bs'}
+                  </Chip>
+                ))}
+              </div>
               <NumberInput value={d.price} onChange={(v) => set('price', v)} label="Precio" placeholder={d.operation === 'alquiler' ? '3800' : '95000'} />
               {d.operation === 'alquiler' && <span className="text-sm text-slate-500">/ mes</span>}
             </div>
-            {!d.operation && <p className="mt-1 text-xs text-slate-500">La moneda depende de la operación: Bs para alquiler, $us para venta y anticrético.</p>}
+            {!draftCurrency(d) && <p className="mt-1 text-xs text-slate-500">Si el mensaje no dice la moneda, se usa Bs para alquiler y $us para venta y anticrético.</p>}
           </Field>
         )
       case 'bedrooms':

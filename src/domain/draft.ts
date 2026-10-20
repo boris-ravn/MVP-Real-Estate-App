@@ -1,5 +1,5 @@
 import type { ParsedListing } from '../parser/parseListing'
-import type { Agent, Listing, Operation, PhotoId, PropertyType, Zone } from './listing'
+import type { Agent, Currency, Listing, Operation, PhotoId, PropertyType, Zone } from './listing'
 import { formatPrice } from './format'
 import { currencyFor, OPERATION_LABELS, TYPE_LABELS } from './listing'
 
@@ -9,6 +9,8 @@ export interface Draft {
   type: PropertyType | null
   zone: Zone | null
   price: number | null
+  /** Currency written in the message or chosen by the agent; `null` = the operation's default (see `draftCurrency`). */
+  currency: Currency | null
   bedrooms: number | null
   bathrooms: number | null
   builtM2: number | null
@@ -28,7 +30,7 @@ export interface Draft {
   description: string
 }
 
-export type DraftField = Exclude<keyof Draft, 'ownerAuthorized' | 'photos' | 'description'>
+export type DraftField = Exclude<keyof Draft, 'currency' | 'ownerAuthorized' | 'photos' | 'description'>
 
 export const FIELD_LABELS: Record<DraftField, string> = {
   operation: 'Operación',
@@ -58,6 +60,8 @@ export function draftFromParsed(p: ParsedListing, text: string): Draft {
     type: p.type ?? null,
     zone: p.zone ?? null,
     price: p.price ?? null,
+    // Only an explicit currency in the message counts; otherwise it follows the operation.
+    currency: p.detected.includes('currency') ? (p.currency ?? null) : null,
     bedrooms: p.bedrooms ?? null,
     bathrooms: p.bathrooms ?? null,
     builtM2: p.builtM2 ?? null,
@@ -141,7 +145,7 @@ export function draftSummary(d: Draft, fields: DraftField[]): string {
   if (has('type')) parts.push(TYPE_LABELS[d.type!])
   if (has('operation')) parts.push(OPERATION_LABELS[d.operation!])
   if (has('zone')) parts.push(d.zone!)
-  if (has('price')) parts.push(d.operation ? formatPrice(d.price!, currencyFor(d.operation)) : String(d.price))
+  if (has('price')) parts.push(draftCurrency(d) ? formatPrice(d.price!, draftCurrency(d)!) : String(d.price))
   if (has('rentExpenses')) parts.push(d.rentExpenses === 0 ? 'Expensas incluidas' : `Expensas Bs ${d.rentExpenses}`)
   if (has('bedrooms')) parts.push(`${d.bedrooms} dorm`)
   if (has('bathrooms')) parts.push(`${d.bathrooms} ${d.bathrooms === 1 ? 'baño' : 'baños'}`)
@@ -153,6 +157,11 @@ export function draftSummary(d: Draft, fields: DraftField[]): string {
   if (has('rentGuarantee')) parts.push(`Garantía ${d.rentGuarantee}`)
   if (has('commissionShare')) parts.push(`Comparte ${d.commissionShare}%`)
   return parts.join(' · ')
+}
+
+/** Price currency: the one written in the message or chosen by the agent, otherwise Bs for rentals and $us for the rest. */
+export function draftCurrency(d: Pick<Draft, 'currency' | 'operation'>): Currency | null {
+  return d.currency ?? (d.operation ? currencyFor(d.operation) : null)
 }
 
 export function missingRequired(d: Draft): DraftField[] {
@@ -170,7 +179,7 @@ export function draftToListing(d: Draft, agent: Agent, now: Date = new Date()): 
     type: d.type!,
     zone: d.zone!,
     price: d.price!,
-    currency: currencyFor(d.operation!),
+    currency: draftCurrency(d)!,
     bedrooms: keep('bedrooms'),
     bathrooms: keep('bathrooms'),
     builtM2: keep('builtM2'),

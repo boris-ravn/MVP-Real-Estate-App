@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseListing } from '../parser/parseListing'
 import { SEED_MESSAGES } from '../seed/messages'
-import { draftFromParsed, draftSummary, draftToListing, EMPTY_DRAFT, growPending, missingRequired, pendingAtStart, relevantFields } from './draft'
+import { draftCurrency, draftFromParsed, draftSummary, draftToListing, EMPTY_DRAFT, growPending, missingRequired, pendingAtStart, relevantFields } from './draft'
 
 const agent = { name: 'Ana Pérez', whatsapp: '+59171234567', memberSince: '2026-10-15T12:00:00.000Z' }
 const now = new Date(2026, 9, 15, 12)
@@ -80,6 +80,22 @@ describe('publish draft', () => {
     expect(draftSummary(draft, ['operation', 'type', 'price', 'bedrooms', 'garage', 'pets', 'commissionShare'])).toBe(
       'Departamento · Alquiler · Bs 3.500 · 2 dorm · Garaje · Mascotas · Comparte 50%',
     )
+  })
+
+  it('keeps the currency written in the message, even if it is not the usual one for the operation', () => {
+    const sale = 'Venta dpto en Sarco 3 dorm Bs 650.000'
+    expect(draftToListing(draftFromParsed(parseListing(sale), sale), agent, now)).toMatchObject({ price: 650000, currency: 'BOB' })
+    const rent = 'Alquilo depto en Sarco 2 dorm $us 500'
+    expect(draftToListing(draftFromParsed(parseListing(rent), rent), agent, now)).toMatchObject({ price: 500, currency: 'USD' })
+  })
+
+  it('without a currency in the message, it follows the operation (also after changing it)', () => {
+    const text = 'Alquilo depto en Sarco 2 dorm, precio 3.500'
+    const draft = draftFromParsed(parseListing(text), text)
+    expect(draft.currency).toBeNull()
+    expect(draftCurrency(draft)).toBe('BOB')
+    expect(draftCurrency({ ...draft, operation: 'venta' })).toBe('USD')
+    expect(draftCurrency({ ...draft, currency: 'USD' })).toBe('USD')
   })
 
   it('requires operation, type, zone and price', () => {
