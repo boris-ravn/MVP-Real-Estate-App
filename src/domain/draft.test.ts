@@ -57,12 +57,21 @@ describe('publish draft', () => {
     let pending = pendingAtStart(EMPTY_DRAFT)
     expect(pending).not.toContain('rentGuarantee')
     const rent = { ...EMPTY_DRAFT, operation: 'alquiler' as const }
-    pending = growPending(pending, rent)
+    pending = growPending(pending, EMPTY_DRAFT, rent)
     expect(pending).toContain('rentGuarantee')
     expect(pending).toContain('rentExpenses')
     // Filling them in does not take them out.
     const filled = { ...rent, rentGuarantee: '2 meses', rentExpenses: 250 }
-    expect(growPending(pending, filled)).toBe(pending)
+    expect(growPending(pending, rent, filled)).toBe(pending)
+  })
+
+  it('clearing a detected field to correct it does not move it to "Te falta"', () => {
+    const text = SEED_MESSAGES[1].text
+    const draft = draftFromParsed(parseListing(text), text)
+    const pending = pendingAtStart(draft)
+    expect(pending).not.toContain('price')
+    const cleared = { ...draft, price: null }
+    expect(growPending(pending, draft, cleared)).not.toContain('price')
   })
 
   it('summarizes what was detected in one line, in listing order (C2)', () => {

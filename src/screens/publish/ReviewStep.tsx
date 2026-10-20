@@ -33,8 +33,9 @@ interface Props {
   suggested: string[]
   /** Text that produced the suggested zone, e.g. "Av. Heroinas". */
   zoneHint?: string
-  /** "Te falta" (missing) on reaching the step (see `pendingAtStart`). */
+  /** Fields shown in "Te falta" (missing): see `pendingAtStart` and `growPending`. */
   pending: DraftField[]
+  setPending: (update: (p: DraftField[]) => DraftField[]) => void
   showErrors: boolean
 }
 
@@ -42,25 +43,26 @@ interface Props {
  * Publish step 2, Review (C2 in PRD v2): what is missing comes first.
  * 1) Summary of what was detected, with "Editar" to expand it; 2) "Te falta"; 3) authorization and photos.
  */
-export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, pending, showErrors }: Props) {
+export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, pending, setPending, showErrors }: Props) {
   const relevant = relevantFields(d)
-  // "Te falta" only grows while on this step: a field that showed up there stays there once filled in.
-  const [stillPending, setStillPending] = useState(pending)
+  // A field never moves between "Te falta" and the summary while the agent edits it: only newly relevant fields are added.
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
     const next = { ...d, [key]: value }
-    setStillPending((p) => growPending(p, next))
+    setPending((p) => growPending(p, d, next))
     setDraft(next)
   }
   const manual = detected.length === 0 && suggested.length === 0
 
-  // A field stays in "Te falta" if it was missing on arrival or became relevant later (e.g., switching to rent adds Garantía).
-  const missingNow = relevant.filter((f) => stillPending.includes(f) || d[f] == null)
+  // "Te falta": fields missing on arrival plus those that became relevant later (e.g., switching to rent adds Garantía).
+  const missingNow = relevant.filter((f) => pending.includes(f))
   const done = relevant.filter((f) => !missingNow.includes(f))
   const missingNowSorted = [...missingNow.filter((f) => REQUIRED_FIELDS.includes(f)), ...missingNow.filter((f) => !REQUIRED_FIELDS.includes(f))]
   const detectedCount = relevant.filter((f) => detected.includes(f)).length
   const stillEmpty = relevant.filter((f) => d[f] == null).length
 
-  const [editing, setEditing] = useState(false)
+  const [editingState, setEditing] = useState(false)
+  // If the agent cleared a required field inside "Editar" and tries to publish, open it so the error is visible.
+  const editing = editingState || (showErrors && done.some((f) => REQUIRED_FIELDS.includes(f) && d[f] == null))
   const toggleEdit = () => {
     if (!editing) logEvent('publish_review_expanded', { detectedCount })
     setEditing(!editing)

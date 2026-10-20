@@ -28,6 +28,7 @@ export function Publish() {
   const [suggested, setSuggested] = useState<string[]>([])
   const [zoneHint, setZoneHint] = useState<string | undefined>()
   const [pending, setPending] = useState<DraftField[]>([])
+  const [missingAtStart, setMissingAtStart] = useState(0)
   const [showErrors, setShowErrors] = useState(false)
   const [askProfile, setAskProfile] = useState(false)
   const [published, setPublished] = useState<Listing | null>(null)
@@ -58,7 +59,9 @@ export function Publish() {
     setDetected(parsed.detected)
     setSuggested(parsed.suggested ?? [])
     setZoneHint(parsed.zoneHint)
-    setPending(pendingAtStart(next, parsed.suggested))
+    const start = pendingAtStart(next, parsed.suggested)
+    setPending(start)
+    setMissingAtStart(start.length)
     setShowErrors(false)
     setStep('review')
   }
@@ -78,7 +81,7 @@ export function Publish() {
     logEvent('publish_completed', {
       listingId: listing.id,
       detectedCount: relevantFields(draft).filter((f) => detected.includes(f)).length,
-      missingAtStart: pending.length,
+      missingAtStart,
     })
     setPublished(listing)
     setStep('done')
@@ -119,7 +122,7 @@ export function Publish() {
 
       {step === 'review' && (
         <>
-          <ReviewStep draft={draft} setDraft={setDraft} detected={detected} suggested={suggested} zoneHint={zoneHint} pending={pending} showErrors={showErrors} />
+          <ReviewStep draft={draft} setDraft={setDraft} detected={detected} suggested={suggested} zoneHint={zoneHint} pending={pending} setPending={setPending} showErrors={showErrors} />
           <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md border-t border-slate-200 bg-white p-3">
             {showErrors && missing.length > 0 && <p className="mb-2 text-center text-sm text-red-700">Completa los campos obligatorios (*) para publicar.</p>}
             <button type="button" onClick={() => publish()} className="min-h-12 w-full rounded-xl bg-brand-600 text-base font-semibold text-white active:bg-brand-700">

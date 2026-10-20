@@ -115,11 +115,13 @@ export function pendingAtStart(d: Draft, suggested: string[] = []): DraftField[]
 }
 
 /**
- * Adds the fields that a change made relevant and still empty (e.g., switching to rent adds
- * Garantía and Expensas), so they stay in "Te falta" after the agent fills them in.
+ * Adds the fields that a change made relevant (e.g., switching to rent adds Garantía and
+ * Expensas), so they show up in "Te falta" and stay there once filled in. A field that was
+ * already relevant never moves, even if the agent clears it to type a new value.
  */
-export function growPending(pending: DraftField[], next: Draft): DraftField[] {
-  const added = relevantFields(next).filter((f) => next[f] == null && !pending.includes(f))
+export function growPending(pending: DraftField[], prev: Draft, next: Draft): DraftField[] {
+  const before = relevantFields(prev)
+  const added = relevantFields(next).filter((f) => !before.includes(f) && next[f] == null && !pending.includes(f))
   return added.length ? [...pending, ...added] : pending
 }
 
