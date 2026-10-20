@@ -14,7 +14,7 @@ export const BOOLEAN_FILTER_LABELS: Record<BooleanFilter, string> = {
   utilities: 'Servicios básicos completos',
 }
 
-/** 1, 2, 3 = exacto; 4 = "4 o más". */
+/** Mínimo de dormitorios: 2 = "2 o más" (C6 del PRD v2). */
 export type BedroomsFilter = 1 | 2 | 3 | 4
 
 export interface Filters {
@@ -52,7 +52,7 @@ export function matches(l: Listing, f: Filters): boolean {
   }
   if (f.bedrooms != null) {
     if (l.bedrooms == null) return false
-    if (f.bedrooms === 4 ? l.bedrooms < 4 : l.bedrooms !== f.bedrooms) return false
+    if (l.bedrooms < f.bedrooms) return false
   }
   for (const key of BOOLEAN_FILTERS) {
     if (f.required[key] && l[key] !== true) return false
@@ -110,7 +110,7 @@ export function filterLabel(f: Filters, key: FilterKey): string {
     case 'price':
       return priceLabel(f) ?? 'Precio'
     case 'bedrooms':
-      return f.bedrooms == null ? 'Dormitorios' : f.bedrooms === 4 ? '4+ dorm' : `${f.bedrooms} dorm`
+      return f.bedrooms == null ? 'Dormitorios' : `${f.bedrooms}+ dorm`
     default:
       return BOOLEAN_FILTER_LABELS[key]
   }

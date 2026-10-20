@@ -123,10 +123,11 @@ export function FilterBar({ filters: f, setFilters, resultCount }: Props) {
       </BottomSheet>
 
       <BottomSheet open={sheet === 'bedrooms'} onClose={close} title="Dormitorios">
+        <p className="text-sm text-slate-600">¿Cuántos como mínimo?</p>
         <div className="flex gap-2 pt-2">
           {([1, 2, 3, 4] as BedroomsFilter[]).map((n) => (
             <Chip key={n} active={f.bedrooms === n} className="flex-1 justify-center text-base" onClick={() => pick(f.bedrooms, n, (bedrooms) => ({ ...f, bedrooms }))}>
-              {n === 4 ? '4+' : n}
+              {n}+
             </Chip>
           ))}
         </div>

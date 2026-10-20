@@ -53,8 +53,12 @@ describe('filtros', () => {
     expect(setOperation({ ...f, operation: 'venta' }, 'anticretico').priceMax).toBe(4000)
   })
 
-  it('dormitorios: exacto para 1–3 y "4 o más" para 4', () => {
-    expect(filterListings(listings, { ...EMPTY_FILTERS, bedrooms: 2 }).every((l) => l.bedrooms === 2)).toBe(true)
+  it('dormitorios: es un mínimo ("2+" incluye 3 y 4) y excluye las que no tienen el dato (C6)', () => {
+    const two = filterListings(listings, { ...EMPTY_FILTERS, bedrooms: 2 })
+    expect(two.every((l) => l.bedrooms != null && l.bedrooms >= 2)).toBe(true)
+    expect(two.some((l) => l.bedrooms === 2)).toBe(true)
+    expect(two.some((l) => (l.bedrooms ?? 0) >= 3)).toBe(true)
+    expect(two).toHaveLength(listings.filter((l) => l.bedrooms != null && l.bedrooms >= 2).length)
     const four = filterListings(listings, { ...EMPTY_FILTERS, bedrooms: 4 })
     expect(four.length).toBeGreaterThan(0)
     expect(four.every((l) => (l.bedrooms ?? 0) >= 4)).toBe(true)
@@ -83,5 +87,6 @@ describe('filtros', () => {
     expect(filterLabel({ ...EMPTY_FILTERS, zones: ['Cala Cala', 'Sarco'] }, 'zones')).toBe('Cala Cala +1')
     expect(filterLabel({ ...EMPTY_FILTERS, operation: 'alquiler', priceMax: 4000 }, 'price')).toBe('Hasta Bs 4.000')
     expect(filterLabel({ ...EMPTY_FILTERS, bedrooms: 4 }, 'bedrooms')).toBe('4+ dorm')
+    expect(filterLabel({ ...EMPTY_FILTERS, bedrooms: 2 }, 'bedrooms')).toBe('2+ dorm')
   })
 })
