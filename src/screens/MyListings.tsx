@@ -8,15 +8,15 @@ import { ShareSheet } from '../components/ShareSheet'
 import { Toast, type ToastData } from '../components/Toast'
 import { daysSince, needsConfirmation } from '../domain/freshness'
 import { formatPrice, listingPrice, listingTitle } from '../domain/format'
-import { TYPE_LABELS, type Listing, type Operation } from '../domain/listing'
+import { CLOSED_LABELS, TYPE_LABELS, type Listing, type Operation } from '../domain/listing'
 import { useStore } from '../store/context'
 import { logEvent } from '../store/events'
 import { myListings, pendingFirstOrder } from '../store/listingsReducer'
 
 const CLOSE_LABEL: Record<Operation, { action: string; done: string }> = {
-  venta: { action: 'Marcar vendida', done: 'Vendida' },
-  alquiler: { action: 'Marcar alquilada', done: 'Alquilada' },
-  anticretico: { action: 'Marcar cerrada', done: 'Cerrada' },
+  venta: { action: 'Marcar vendida', done: CLOSED_LABELS.venta },
+  alquiler: { action: 'Marcar alquilada', done: CLOSED_LABELS.alquiler },
+  anticretico: { action: 'Marcar cerrada', done: CLOSED_LABELS.anticretico },
 }
 
 const nowIso = () => new Date().toISOString()

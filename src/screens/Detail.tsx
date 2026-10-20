@@ -7,7 +7,7 @@ import { Gallery } from '../components/Gallery'
 import { ShareSheet } from '../components/ShareSheet'
 import { DEMO_MODE } from '../config'
 import { groupThousands, listingPrice, timeInNetwork } from '../domain/format'
-import { OPERATION_LABELS, TYPE_LABELS, type Listing } from '../domain/listing'
+import { CLOSED_LABELS, OPERATION_LABELS, TYPE_LABELS, type Listing } from '../domain/listing'
 import { contactMessage, contactUrl } from '../domain/whatsapp'
 import { useStore } from '../store/context'
 import { logEvent } from '../store/events'
@@ -56,7 +56,8 @@ export function Detail() {
 
       <Gallery photos={listing.photos} />
       <ListingSheet listing={listing} />
-      <ContactBar listing={listing} />
+      {/* A closed listing can no longer be asked about or shared. */}
+      {listing.status === 'active' && <ContactBar listing={listing} />}
     </div>
   )
 }
@@ -78,10 +79,19 @@ function ListingSheet({ listing: l }: { listing: Listing }) {
       </Block>
 
       <Block icon={<CalendarCheck size={18} />} title="Disponibilidad">
-        <FreshnessBadge lastConfirmedAt={l.lastConfirmedAt} />
-        <p className="mt-1 text-sm text-slate-600">
-          Última confirmación: {new Date(l.lastConfirmedAt).toLocaleDateString('es-BO', { day: 'numeric', month: 'long', year: 'numeric' })}
-        </p>
+        {l.status === 'closed' ? (
+          <>
+            <span className="inline-flex rounded-full bg-slate-200 px-2.5 py-1 text-sm font-medium text-slate-700">Ya no está disponible · {CLOSED_LABELS[l.operation]}</span>
+            <p className="mt-1 text-sm text-slate-600">Ya no aparece en el listado.</p>
+          </>
+        ) : (
+          <>
+            <FreshnessBadge lastConfirmedAt={l.lastConfirmedAt} />
+            <p className="mt-1 text-sm text-slate-600">
+              Última confirmación: {new Date(l.lastConfirmedAt).toLocaleDateString('es-BO', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          </>
+        )}
       </Block>
 
       <Block icon={<Handshake size={18} />} title="Colaboración">

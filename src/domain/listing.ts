@@ -87,6 +87,13 @@ export const OPERATION_PHRASE: Record<Operation, string> = {
   anticretico: 'en anticrético',
 }
 
+/** Status shown once a listing is closed (sold, rented…). */
+export const CLOSED_LABELS: Record<Operation, string> = {
+  venta: 'Vendida',
+  alquiler: 'Alquilada',
+  anticretico: 'Cerrada',
+}
+
 export const TYPE_LABELS: Record<PropertyType, string> = {
   casa: 'Casa',
   departamento: 'Departamento',
