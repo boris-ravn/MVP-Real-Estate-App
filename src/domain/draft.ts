@@ -1,6 +1,7 @@
 import type { ParsedListing } from '../parser/parseListing'
 import type { Agent, Listing, Operation, PhotoId, PropertyType, Zone } from './listing'
-import { currencyFor } from './listing'
+import { formatPrice } from './format'
+import { currencyFor, OPERATION_LABELS, TYPE_LABELS } from './listing'
 
 /** Ficha en edición (paso 2 de Publicar). `null` = el participante aún no lo completó. */
 export interface Draft {
@@ -103,6 +104,44 @@ export function relevantFields(d: Pick<Draft, 'type' | 'operation'>): DraftField
     'commissionShare',
   ]
   return fields.filter((f): f is DraftField => f !== false)
+}
+
+/**
+ * Campos que van en "Te falta" al llegar a Revisar (C2): los relevantes sin dato y los sugeridos.
+ * Se calcula una sola vez, para que un campo no salte al resumen mientras el asesor lo completa.
+ */
+export function pendingAtStart(d: Draft, suggested: string[] = []): DraftField[] {
+  return relevantFields(d).filter((f) => d[f] == null || suggested.includes(f))
+}
+
+const SUMMARY_BOOLS: Partial<Record<DraftField, [string, string]>> = {
+  garage: ['Garaje', 'Sin garaje'],
+  pets: ['Mascotas', 'Sin mascotas'],
+  storage: ['Baulera', 'Sin baulera'],
+  bankCredit: ['Crédito bancario', 'Sin crédito'],
+  docsOk: ['Papeles al día', 'Papeles pendientes'],
+  utilities: ['Servicios completos', 'Servicios incompletos'],
+}
+
+/** Resumen en una línea de los campos dados, en el orden de la ficha: "Departamento · Alquiler · Bs 3.500 · 2 dorm · Garaje". */
+export function draftSummary(d: Draft, fields: DraftField[]): string {
+  const parts: string[] = []
+  const has = (f: DraftField) => fields.includes(f) && d[f] != null
+  if (has('type')) parts.push(TYPE_LABELS[d.type!])
+  if (has('operation')) parts.push(OPERATION_LABELS[d.operation!])
+  if (has('zone')) parts.push(d.zone!)
+  if (has('price')) parts.push(d.operation ? formatPrice(d.price!, currencyFor(d.operation)) : String(d.price))
+  if (has('rentExpenses')) parts.push(d.rentExpenses === 0 ? 'Expensas incluidas' : `Expensas Bs ${d.rentExpenses}`)
+  if (has('bedrooms')) parts.push(`${d.bedrooms} dorm`)
+  if (has('bathrooms')) parts.push(`${d.bathrooms} ${d.bathrooms === 1 ? 'baño' : 'baños'}`)
+  if (has('builtM2')) parts.push(`${d.builtM2} m²`)
+  if (has('landM2')) parts.push(`Terreno ${d.landM2} m²`)
+  for (const [f, [yes, no]] of Object.entries(SUMMARY_BOOLS) as [DraftField, [string, string]][]) {
+    if (has(f)) parts.push(d[f] ? yes : no)
+  }
+  if (has('rentGuarantee')) parts.push(`Garantía ${d.rentGuarantee}`)
+  if (has('commissionShare')) parts.push(`Comparte ${d.commissionShare}%`)
+  return parts.join(' · ')
 }
 
 export function missingRequired(d: Draft): DraftField[] {

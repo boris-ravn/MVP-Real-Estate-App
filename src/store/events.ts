@@ -8,6 +8,7 @@ export type EventName =
   | 'share_click'
   | 'publish_started'
   | 'publish_parsed'
+  | 'publish_review_expanded'
   | 'publish_completed'
   | 'confirm_available'
   | 'mark_closed'

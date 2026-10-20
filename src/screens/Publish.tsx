@@ -1,7 +1,7 @@
 import { ArrowLeft, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { draftFromParsed, draftToListing, EMPTY_DRAFT, missingRequired, relevantFields, type Draft } from '../domain/draft'
+import { draftFromParsed, draftToListing, EMPTY_DRAFT, missingRequired, pendingAtStart, relevantFields, type Draft, type DraftField } from '../domain/draft'
 import type { Agent, Listing } from '../domain/listing'
 import { parseListing } from '../parser/parseListing'
 import { useStore } from '../store/context'
@@ -25,6 +25,9 @@ export function Publish() {
   const [text, setText] = useState('')
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT)
   const [detected, setDetected] = useState<string[]>([])
+  const [suggested, setSuggested] = useState<string[]>([])
+  const [zoneHint, setZoneHint] = useState<string | undefined>()
+  const [pending, setPending] = useState<DraftField[]>([])
   const [showErrors, setShowErrors] = useState(false)
   const [askProfile, setAskProfile] = useState(false)
   const [published, setPublished] = useState<Listing | null>(null)
@@ -41,7 +44,7 @@ export function Publish() {
   }, [step])
 
   const goReview = (manual: boolean) => {
-    const parsed = manual ? { detected: [] } : parseListing(text)
+    const parsed: ReturnType<typeof parseListing> = manual ? { detected: [] } : parseListing(text)
     const next = draftFromParsed(parsed, manual ? '' : text)
     const fields = relevantFields(next)
     logEvent('publish_parsed', {
@@ -49,9 +52,13 @@ export function Publish() {
       detectedCount: fields.filter((f) => parsed.detected.includes(f)).length,
       relevantCount: fields.length,
       detected: parsed.detected,
+      suggested: parsed.suggested ?? [],
     })
     setDraft(next)
     setDetected(parsed.detected)
+    setSuggested(parsed.suggested ?? [])
+    setZoneHint(parsed.zoneHint)
+    setPending(pendingAtStart(next, parsed.suggested))
     setShowErrors(false)
     setStep('review')
   }
@@ -71,6 +78,7 @@ export function Publish() {
     logEvent('publish_completed', {
       listingId: listing.id,
       detectedCount: relevantFields(draft).filter((f) => detected.includes(f)).length,
+      missingAtStart: pending.length,
     })
     setPublished(listing)
     setStep('done')
@@ -111,7 +119,7 @@ export function Publish() {
 
       {step === 'review' && (
         <>
-          <ReviewStep draft={draft} setDraft={setDraft} detected={detected} showErrors={showErrors} />
+          <ReviewStep draft={draft} setDraft={setDraft} detected={detected} suggested={suggested} zoneHint={zoneHint} pending={pending} showErrors={showErrors} />
           <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md border-t border-slate-200 bg-white p-3">
             {showErrors && missing.length > 0 && <p className="mb-2 text-center text-sm text-red-700">Completa los campos obligatorios (*) para publicar.</p>}
             <button type="button" onClick={() => publish()} className="min-h-12 w-full rounded-xl bg-brand-600 text-base font-semibold text-white active:bg-brand-700">
