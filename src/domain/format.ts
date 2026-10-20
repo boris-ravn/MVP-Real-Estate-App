@@ -17,6 +17,19 @@ export function listingPrice(l: Pick<Listing, 'price' | 'currency' | 'operation'
   return l.operation === 'alquiler' ? `${base} / mes` : base
 }
 
+/** Corto, para la tarjeta: "+ 250 exp." o "(exp. incluidas)". `null` sin dato o si no es alquiler. */
+export function expensesShort(l: Pick<Listing, 'operation' | 'rentExpenses'>): string | null {
+  if (l.operation !== 'alquiler' || l.rentExpenses == null) return null
+  return l.rentExpenses === 0 ? '(exp. incluidas)' : `+ ${groupThousands(l.rentExpenses)} exp.`
+}
+
+/** Para textos y ficha: "Bs 3.800 / mes + Bs 250 de expensas" o "Bs 3.800 / mes (expensas incluidas)". */
+export function priceWithExpenses(l: Pick<Listing, 'price' | 'currency' | 'operation' | 'rentExpenses'>): string {
+  const base = listingPrice(l)
+  if (l.operation !== 'alquiler' || l.rentExpenses == null) return base
+  return l.rentExpenses === 0 ? `${base} (expensas incluidas)` : `${base} + Bs ${groupThousands(l.rentExpenses)} de expensas`
+}
+
 /** "Departamento en venta" */
 export function listingTitle(l: Pick<Listing, 'type' | 'operation'>): string {
   return `${TYPE_LABELS[l.type]} ${OPERATION_PHRASE[l.operation]}`

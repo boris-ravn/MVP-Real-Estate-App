@@ -1,6 +1,6 @@
 import { Bath, BedDouble, Car, Handshake, PawPrint, Ruler } from 'lucide-react'
 import { Link } from 'react-router'
-import { listingPrice, listingTitle } from '../domain/format'
+import { expensesShort, listingPrice, listingTitle } from '../domain/format'
 import type { Listing } from '../domain/listing'
 import { FreshnessBadge } from './FreshnessBadge'
 import { PhotoPlaceholder } from './PhotoPlaceholder'
@@ -21,7 +21,10 @@ export function ListingCard({ listing: l }: { listing: Listing }) {
         )}
       </div>
       <div className="space-y-1.5 p-3">
-        <div className="text-xl font-bold tracking-tight">{listingPrice(l)}</div>
+        <div className="text-xl font-bold tracking-tight">
+          {listingPrice(l)}
+          {expensesShort(l) && <span className="ml-1.5 text-sm font-medium text-slate-500">{expensesShort(l)}</span>}
+        </div>
         <div className="text-sm text-slate-700">
           {listingTitle(l)} · <span className="font-semibold text-slate-900">{l.zone}</span>
         </div>

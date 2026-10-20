@@ -23,7 +23,7 @@ describe('texto para compartir', () => {
 
   it('alquiler en Bs por mes, autorización y frescura no reciente', () => {
     const text = shareText(byId('seed-16'), 'L', now)
-    expect(text).toContain('💵 Bs 2.900 / mes · 2 dorm · 1 baño · 70 m²')
+    expect(text).toContain('💵 Bs 2.900 / mes + Bs 200 de expensas · 2 dorm · 1 baño · 70 m²')
     expect(text).toContain('🕒 Confirmado hace 6 días')
   })
 

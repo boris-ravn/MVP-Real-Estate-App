@@ -1,5 +1,5 @@
 import { freshness } from './freshness'
-import { listingPrice, listingTitle } from './format'
+import { listingTitle, priceWithExpenses } from './format'
 import type { Listing } from './listing'
 
 /** Link a la ficha. Sin backend, solo abre la ficha en el mismo dispositivo (limitación del prototipo). */
@@ -20,7 +20,7 @@ export function listingLink(id: string, base: string = `${location.origin}${loca
 export function shareText(l: Listing, link: string, now: Date = new Date()): string {
   const area = l.type === 'terreno' ? l.landM2 : l.builtM2
   const facts = [
-    listingPrice(l),
+    priceWithExpenses(l),
     l.bedrooms != null && `${l.bedrooms} dorm`,
     l.bathrooms != null && `${l.bathrooms} ${l.bathrooms === 1 ? 'baño' : 'baños'}`,
     area != null && `${area} m²`,

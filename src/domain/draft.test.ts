@@ -26,6 +26,20 @@ describe('borrador de publicación', () => {
     })
   })
 
+  it('conserva las expensas detectadas en alquiler (C5)', () => {
+    const text = 'Alquilo depto en Cala Cala, 2 dorm, Bs 3.800, expensas Bs 250'
+    const draft = draftFromParsed(parseListing(text), text)
+    expect(draft.rentExpenses).toBe(250)
+    expect(relevantFields(draft)).toContain('rentExpenses')
+    expect(draftToListing(draft, agent, now).rentExpenses).toBe(250)
+  })
+
+  it('las expensas no aplican fuera de alquiler', () => {
+    const draft = { ...EMPTY_DRAFT, operation: 'venta' as const, type: 'departamento' as const, zone: 'Sarco' as const, price: 90000, rentExpenses: 300 }
+    expect(relevantFields(draft)).not.toContain('rentExpenses')
+    expect(draftToListing(draft, agent, now).rentExpenses).toBeNull()
+  })
+
   it('exige operación, tipo, zona y precio', () => {
     expect(missingRequired(EMPTY_DRAFT)).toEqual(['operation', 'type', 'zone', 'price'])
     expect(() => draftToListing(EMPTY_DRAFT, agent, now)).toThrow()

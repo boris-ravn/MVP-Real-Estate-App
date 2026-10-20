@@ -19,6 +19,8 @@ export interface Draft {
   docsOk: boolean | null
   utilities: boolean | null
   rentGuarantee: string | null
+  /** Solo alquiler, Bs por mes; 0 = incluidas. */
+  rentExpenses: number | null
   commissionShare: number | null
   ownerAuthorized: boolean
   photos: PhotoId[]
@@ -43,6 +45,7 @@ export const FIELD_LABELS: Record<DraftField, string> = {
   docsOk: 'Documentación al día',
   utilities: 'Servicios básicos completos',
   rentGuarantee: 'Garantía',
+  rentExpenses: 'Expensas',
   commissionShare: 'Comisión compartida',
 }
 
@@ -65,6 +68,7 @@ export function draftFromParsed(p: ParsedListing, text: string): Draft {
     docsOk: p.docsOk ?? null,
     utilities: p.utilities ?? null,
     rentGuarantee: p.rentGuarantee ?? null,
+    rentExpenses: p.rentExpenses ?? null,
     commissionShare: p.commissionShare ?? null,
     ownerAuthorized: false,
     photos: ['fachada'],
@@ -95,6 +99,7 @@ export function relevantFields(d: Pick<Draft, 'type' | 'operation'>): DraftField
     'docsOk',
     'utilities',
     rent && 'rentGuarantee',
+    rent && 'rentExpenses',
     'commissionShare',
   ]
   return fields.filter((f): f is DraftField => f !== false)
@@ -127,7 +132,7 @@ export function draftToListing(d: Draft, agent: Agent, now: Date = new Date()): 
     docsOk: d.docsOk,
     utilities: d.utilities,
     rentGuarantee: keep('rentGuarantee'),
-    rentExpenses: null,
+    rentExpenses: keep('rentExpenses'),
     commissionShare: d.commissionShare,
     ownerAuthorized: d.ownerAuthorized,
     photos: d.photos.length ? d.photos : ['fachada'],

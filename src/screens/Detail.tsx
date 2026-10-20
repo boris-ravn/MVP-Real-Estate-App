@@ -6,7 +6,7 @@ import { FreshnessBadge } from '../components/FreshnessBadge'
 import { Gallery } from '../components/Gallery'
 import { ShareSheet } from '../components/ShareSheet'
 import { DEMO_MODE } from '../config'
-import { listingPrice, timeInNetwork } from '../domain/format'
+import { groupThousands, listingPrice, timeInNetwork } from '../domain/format'
 import { OPERATION_LABELS, TYPE_LABELS, type Listing } from '../domain/listing'
 import { contactMessage, contactUrl } from '../domain/whatsapp'
 import { useStore } from '../store/context'
@@ -69,6 +69,9 @@ function ListingSheet({ listing: l }: { listing: Listing }) {
     <div className="divide-y divide-slate-100">
       <Block icon={<Tag size={18} />} title="Precio y operación">
         <p className="text-3xl font-bold tracking-tight">{listingPrice(l)}</p>
+        {isRent && l.rentExpenses != null && (
+          <p className="text-sm text-slate-600">{l.rentExpenses === 0 ? 'Expensas incluidas' : `+ Bs ${groupThousands(l.rentExpenses)} de expensas al mes`}</p>
+        )}
         <p className="text-slate-700">
           {OPERATION_LABELS[l.operation]} · {TYPE_LABELS[l.type]} · {l.zone}
         </p>
@@ -112,7 +115,7 @@ function ListingSheet({ listing: l }: { listing: Listing }) {
             ...(isRent
               ? ([
                   ['Garantía', l.rentGuarantee ?? null],
-                  ['Expensas', l.rentExpenses == null ? null : l.rentExpenses === 0 ? 'Incluidas' : `Bs ${l.rentExpenses} / mes`],
+                  ['Expensas', l.rentExpenses == null ? null : l.rentExpenses === 0 ? 'Incluidas' : `Bs ${groupThousands(l.rentExpenses)} / mes`],
                 ] as const)
               : []),
           ]}
