@@ -115,7 +115,8 @@ function flag(t: string, re: RegExp): boolean | undefined {
   const m = re.exec(t)
   if (!m) return undefined
   const before = t.slice(Math.max(0, m.index - 15), m.index)
-  return !/\b(?:no|sin)\b/.test(before)
+  // "s/garaje" is the short form of "sin garaje", just as "c/garaje" is "con garaje".
+  return !/\b(?:no|sin)\b|\bs\/\s*$/.test(before)
 }
 
 const FLAGS: [keyof Listing, RegExp][] = [
