@@ -71,7 +71,7 @@ interface Span {
 
 const overlaps = (a: Span, b?: Span) => !!b && a.start < b.end && b.start < a.end
 
-/** `skip`: where the expensas are, so they are not mistaken for the price. */
+/** `skip`: where the HOA fees are, so they are not mistaken for the price. */
 function parsePrice(t: string, skip?: Span): { price: number; currency?: Currency } | undefined {
   const candidates: { index: number; price: number; currency: Currency }[] = []
   const add = (m: RegExpMatchArray, price: number, currency: Currency) => {
@@ -162,7 +162,7 @@ export function parseListing(text: string): ParsedListing {
     }
   }
 
-  // Expensas first, so their amount is not taken as the price ("250 de expensas Bs 3.800").
+  // HOA fees first, so their amount is not taken as the price ("250 de expensas Bs 3.800").
   const expenses = parseExpenses(t)
   const price = parsePrice(t, expenses?.span)
   if (price) {
@@ -190,7 +190,7 @@ export function parseListing(text: string): ParsedListing {
 }
 
 const AMOUNT = String.raw`(\d{1,3}(?:[.,]\d{3})+|\d+)`
-// The amount comes first only when it clearly belongs to the expensas: "+ 250 expensas", "250 de expensas".
+// The amount comes first only when it clearly belongs to the HOA fees: "+ 250 expensas", "250 de expensas".
 const EXPENSES_BEFORE = new RegExp(String.raw`(?:\+\s*(?:bs\.?\s*)?${AMOUNT}\s*(?:bs\.?\s*)?(?:de\s+)?|(?<![\d.,])${AMOUNT}\s*(?:bs\.?\s*)?de\s+)expensas`)
 const EXPENSES_AFTER = new RegExp(String.raw`expensas\W{0,3}(?:bs\.?\s*)?${AMOUNT}`)
 

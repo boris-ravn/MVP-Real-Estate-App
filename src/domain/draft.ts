@@ -3,7 +3,7 @@ import type { Agent, Listing, Operation, PhotoId, PropertyType, Zone } from './l
 import { formatPrice } from './format'
 import { currencyFor, OPERATION_LABELS, TYPE_LABELS } from './listing'
 
-/** Listing being edited (step 2 of Publicar). `null` = the participant hasn't filled it in yet. */
+/** Listing being edited (Publish step 2, Review). `null` = the participant hasn't filled it in yet. */
 export interface Draft {
   operation: Operation | null
   type: PropertyType | null

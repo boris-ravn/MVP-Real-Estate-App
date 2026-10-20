@@ -54,7 +54,7 @@ export function reducer(state: AppState, action: Action): AppState {
   }
 }
 
-/** Public listing: active ones, sorted by most recent confirmation. */
+/** Public list: active listings, sorted by most recent confirmation. */
 export function publicListings(listings: Listing[]): Listing[] {
   return listings
     .filter((l) => l.status === 'active')

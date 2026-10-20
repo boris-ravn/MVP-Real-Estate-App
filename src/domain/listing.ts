@@ -58,7 +58,7 @@ export interface Listing {
   utilities: boolean | null
   /** Rentals only, e.g. "2 meses". */
   rentGuarantee?: string | null
-  /** Rentals only, monthly expenses in Bs. */
+  /** Rentals only, monthly HOA fees (expensas) in Bs. */
   rentExpenses?: number | null
   /** % of the commission that is shared, e.g. 50. */
   commissionShare: number | null

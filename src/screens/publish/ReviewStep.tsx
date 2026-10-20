@@ -39,7 +39,7 @@ interface Props {
 }
 
 /**
- * Step 2 of Publish (C2 in PRD v2): what is missing comes first.
+ * Publish step 2, Review (C2 in PRD v2): what is missing comes first.
  * 1) Summary of what was detected, with "Editar" to expand it; 2) "Te falta"; 3) authorization and photos.
  */
 export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, pending, showErrors }: Props) {

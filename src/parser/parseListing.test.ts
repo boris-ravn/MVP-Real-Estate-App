@@ -52,7 +52,7 @@ describe('parseListing · edge cases', () => {
     expect(parseListing('Vendo casa, precio 150.000')).toMatchObject({ price: 150000, currency: 'USD' })
   })
 
-  it('does not mistake m², percentages or expensas for the price', () => {
+  it('does not mistake m², percentages or HOA fees for the price', () => {
     const r = parseListing('Alquilo depto 80 m2, comparto 50%, Bs 3.000 + expensas Bs 200')
     expect(r).toMatchObject({ price: 3000, currency: 'BOB', builtM2: 80, commissionShare: 50 })
   })
@@ -118,7 +118,7 @@ describe('parseListing · edge cases', () => {
     expect(r.suggested).toBeUndefined()
   })
 
-  it('expensas: several formats (C3)', () => {
+  it('HOA fees (expensas): several formats (C3)', () => {
     expect(parseListing('expensas 250').rentExpenses).toBe(250)
     expect(parseListing('expensas: Bs 250').rentExpenses).toBe(250)
     expect(parseListing('Bs 3.000 + 250 de expensas').rentExpenses).toBe(250)
@@ -128,7 +128,7 @@ describe('parseListing · edge cases', () => {
     expect(parseListing('Bs 3.500 + expensas').rentExpenses).toBeUndefined()
   })
 
-  it('expensas written before the price do not swallow the price', () => {
+  it('HOA fees written before the price do not swallow the price', () => {
     expect(parseListing('Alquilo depto 250 de expensas Bs 3.800')).toMatchObject({ price: 3800, currency: 'BOB', rentExpenses: 250 })
     expect(parseListing('+ 250 expensas, Bs 3.800')).toMatchObject({ price: 3800, rentExpenses: 250 })
     expect(parseListing('expensas Bs 1.200, alquiler Bs 6.500')).toMatchObject({ price: 6500, rentExpenses: 1200 })

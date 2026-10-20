@@ -41,6 +41,6 @@ export function timeInNetwork(memberSinceIso: string, now: Date = new Date()): s
   if (days < 14) return 'hace poco'
   if (days < 60) return `hace ${Math.floor(days / 7)} semanas`
   const months = Math.floor(days / 30.4)
-  if (months < 24) return `hace ${months} meses`
+  if (months < 24) return `hace ${months} ${months === 1 ? 'mes' : 'meses'}`
   return `hace ${Math.floor(months / 12)} años`
 }

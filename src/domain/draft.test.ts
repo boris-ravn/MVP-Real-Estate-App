@@ -26,7 +26,7 @@ describe('publish draft', () => {
     })
   })
 
-  it('keeps detected expenses on rentals (C5)', () => {
+  it('keeps detected HOA fees on rentals (C5)', () => {
     const text = 'Alquilo depto en Cala Cala, 2 dorm, Bs 3.800, expensas Bs 250'
     const draft = draftFromParsed(parseListing(text), text)
     expect(draft.rentExpenses).toBe(250)
@@ -34,7 +34,7 @@ describe('publish draft', () => {
     expect(draftToListing(draft, agent, now).rentExpenses).toBe(250)
   })
 
-  it('expenses do not apply outside rentals', () => {
+  it('HOA fees do not apply outside rentals', () => {
     const draft = { ...EMPTY_DRAFT, operation: 'venta' as const, type: 'departamento' as const, zone: 'Sarco' as const, price: 90000, rentExpenses: 300 }
     expect(relevantFields(draft)).not.toContain('rentExpenses')
     expect(draftToListing(draft, agent, now).rentExpenses).toBeNull()

@@ -55,7 +55,7 @@ src/
   config.ts               single configuration (see above)
   domain/                 pure, tested logic: model, freshness, format, filters, draft, WhatsApp, sharing
   parser/parseListing.ts  "paste message → listing" (regex + dictionaries; can be swapped for an LLM without touching the UI)
-  seed/                   28 listings, 9 fictitious agents and 8 sample messages; dates are relative to today
+  seed/                   28 listings, 9 fictitious agents and 11 sample messages; dates are relative to today
   store/                  state + localStorage, event log and filters
   screens/                Home (F1), Detail (F2/F3), Publish (F4), MyListings (F5), Debug
   components/             card, bottom sheets, sharing (F6)…

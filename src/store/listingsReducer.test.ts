@@ -8,7 +8,7 @@ const initial: AppState = { listings: buildSeedListings(now), profile: null }
 const at = now.toISOString()
 
 describe('listings reducer', () => {
-  it('sorts the public listing by most recent confirmation', () => {
+  it('sorts the public list by most recent confirmation', () => {
     const list = publicListings(initial.listings)
     for (let i = 1; i < list.length; i++) expect(list[i - 1].lastConfirmedAt >= list[i].lastConfirmedAt).toBe(true)
   })
@@ -54,7 +54,7 @@ describe('listings reducer', () => {
     expect(s.listings.find((l) => l.id === id)).toMatchObject({ price: 120000, lastConfirmedAt: at })
   })
 
-  it('"Marcar vendida" removes it from the public listing but keeps it in my listings', () => {
+  it('"Marcar vendida" removes it from the public list but keeps it in my listings', () => {
     const id = myListings(initial.listings)[0].id
     const s = reducer(initial, { type: 'markClosed', id })
     expect(publicListings(s.listings).some((l) => l.id === id)).toBe(false)

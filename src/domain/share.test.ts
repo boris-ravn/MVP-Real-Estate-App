@@ -50,7 +50,7 @@ describe('share text', () => {
     expect(text).not.toContain(l.agent.name)
   })
 
-  it('client mode: no availability line if not recent; with expenses on rentals', () => {
+  it('client mode: no availability line if not recent; with HOA fees on rentals', () => {
     const text = clientShareText(byId('seed-16'), { name: 'Valeria Rojas', whatsapp: '+59170000009' }, now)
     expect(text).toContain('💵 Bs 2.900 / mes + Bs 200 de expensas')
     expect(text).not.toContain('Disponible')

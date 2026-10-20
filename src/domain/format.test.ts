@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatPrice, groupThousands, listingPrice, listingTitle } from './format'
+import { formatPrice, groupThousands, listingPrice, listingTitle, timeInNetwork } from './format'
 
 describe('format', () => {
   it('groups thousands with a dot', () => {
@@ -17,6 +17,16 @@ describe('format', () => {
   it('adds "/ mes" only on rentals', () => {
     expect(listingPrice({ price: 3800, currency: 'BOB', operation: 'alquiler' })).toBe('Bs 3.800 / mes')
     expect(listingPrice({ price: 35000, currency: 'USD', operation: 'anticretico' })).toBe('$us 35.000')
+  })
+
+  it('time in the network: singular "mes" for one month', () => {
+    const now = new Date(2026, 9, 20, 12)
+    const ago = (days: number) => new Date(now.getTime() - days * 86_400_000).toISOString()
+    expect(timeInNetwork(ago(5), now)).toBe('hace poco')
+    expect(timeInNetwork(ago(20), now)).toBe('hace 2 semanas')
+    expect(timeInNetwork(ago(60), now)).toBe('hace 1 mes')
+    expect(timeInNetwork(ago(250), now)).toBe('hace 8 meses')
+    expect(timeInNetwork(ago(800), now)).toBe('hace 2 años')
   })
 
   it('builds the title', () => {
