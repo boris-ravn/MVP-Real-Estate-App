@@ -64,22 +64,30 @@ function toCurrency(token: string): Currency {
   return /bs|bolivianos/.test(token) ? 'BOB' : 'USD'
 }
 
-function parsePrice(t: string): { price: number; currency?: Currency } | undefined {
+interface Span {
+  start: number
+  end: number
+}
+
+const overlaps = (a: Span, b?: Span) => !!b && a.start < b.end && b.start < a.end
+
+/** `skip`: dónde están las expensas, para no confundirlas con el precio. */
+function parsePrice(t: string, skip?: Span): { price: number; currency?: Currency } | undefined {
   const candidates: { index: number; price: number; currency: Currency }[] = []
-  for (const m of t.matchAll(new RegExp(`${CUR_BEFORE}\\s*${NUM}`, 'g'))) {
-    candidates.push({ index: m.index, price: toNumber(m[2], m[3]), currency: toCurrency(m[1]) })
+  const add = (m: RegExpMatchArray, price: number, currency: Currency) => {
+    if (!overlaps({ start: m.index!, end: m.index! + m[0].length }, skip)) candidates.push({ index: m.index!, price, currency })
   }
-  for (const m of t.matchAll(new RegExp(`${NUM}\\s*${CUR_AFTER}`, 'g'))) {
-    candidates.push({ index: m.index, price: toNumber(m[1], m[2]), currency: toCurrency(m[3]) })
-  }
-  // Las expensas no son el precio.
-  const valid = candidates
-    .filter((c) => !/expensas\W*$/.test(t.slice(Math.max(0, c.index - 12), c.index)) && c.price > 0)
-    .sort((a, b) => a.index - b.index)
+  for (const m of t.matchAll(new RegExp(`${CUR_BEFORE}\\s*${NUM}`, 'g'))) add(m, toNumber(m[2], m[3]), toCurrency(m[1]))
+  for (const m of t.matchAll(new RegExp(`${NUM}\\s*${CUR_AFTER}`, 'g'))) add(m, toNumber(m[1], m[2]), toCurrency(m[3]))
+  const valid = candidates.filter((c) => c.price > 0).sort((a, b) => a.index - b.index)
   if (valid.length) return valid[0]
 
-  const m = new RegExp(`precio\\W{0,3}${NUM}`).exec(t)
-  if (m) return { price: toNumber(m[1], m[2]) }
+  // Sin moneda: "precio 3.200", o un número con "mil"/"k" ("4 mil"); la moneda sale de la operación.
+  for (const re of [new RegExp(`precio\\W{0,3}${NUM}`, 'g'), /(?<![\d.,])(\d+(?:[.,]\d+)?)\s*(k|mil)(?![a-z])/g]) {
+    for (const m of t.matchAll(re)) {
+      if (!overlaps({ start: m.index!, end: m.index! + m[0].length }, skip)) return { price: toNumber(m[1], m[2]) }
+    }
+  }
   return undefined
 }
 
@@ -154,7 +162,9 @@ export function parseListing(text: string): ParsedListing {
     }
   }
 
-  const price = parsePrice(t)
+  // Primero las expensas, para que su monto no se tome como precio ("250 de expensas Bs 3.800").
+  const expenses = parseExpenses(t)
+  const price = parsePrice(t, expenses?.span)
   if (price) {
     set('price', price.price)
     if (price.currency) set('currency', price.currency)
@@ -174,15 +184,25 @@ export function parseListing(text: string): ParsedListing {
 
   const g = /garantia\W{0,3}(?:de\s*)?(\d+)\s*mes/.exec(t)
   if (g) set('rentGuarantee', `${g[1]} ${g[1] === '1' ? 'mes' : 'meses'}`)
-  set('rentExpenses', parseExpenses(t))
+  set('rentExpenses', expenses?.value)
 
   return out
 }
 
-/** "expensas 250", "250 de expensas", "+ 250 bs expensas"; "expensas incluidas" = 0. */
-function parseExpenses(t: string): number | undefined {
-  if (/expensas\s+incluidas|incluye\s+(?:las\s+)?expensas/.test(t)) return 0
-  return num(/expensas\W{0,3}(?:bs\.?\s*)?(\d+)/.exec(t)) ?? num(/(\d+)\s*(?:bs\.?\s*)?(?:de\s+)?expensas/.exec(t))
+const AMOUNT = String.raw`(\d{1,3}(?:[.,]\d{3})+|\d+)`
+// El monto va antes solo si está claro que es de las expensas: "+ 250 expensas", "250 de expensas".
+const EXPENSES_BEFORE = new RegExp(String.raw`(?:\+\s*(?:bs\.?\s*)?${AMOUNT}\s*(?:bs\.?\s*)?(?:de\s+)?|(?<![\d.,])${AMOUNT}\s*(?:bs\.?\s*)?de\s+)expensas`)
+const EXPENSES_AFTER = new RegExp(String.raw`expensas\W{0,3}(?:bs\.?\s*)?${AMOUNT}`)
+
+/**
+ * "expensas 250", "250 de expensas", "+ 250 bs expensas"; "expensas incluidas" = 0.
+ * `span` marca dónde está el monto, para que parsePrice no lo tome como precio.
+ */
+function parseExpenses(t: string): { value: number; span?: Span } | undefined {
+  if (/expensas\s+incluidas|incluye\s+(?:las\s+)?expensas/.test(t)) return { value: 0 }
+  const m = EXPENSES_BEFORE.exec(t) ?? EXPENSES_AFTER.exec(t)
+  if (!m) return undefined
+  return { value: toNumber(m[1] ?? m[2]), span: { start: m.index, end: m.index + m[0].length } }
 }
 
 function num(m: RegExpExecArray | null): number | undefined {

@@ -128,6 +128,20 @@ describe('parseListing · casos borde', () => {
     expect(parseListing('Bs 3.500 + expensas').rentExpenses).toBeUndefined()
   })
 
+  it('expensas escritas antes del precio no se comen el precio', () => {
+    expect(parseListing('Alquilo depto 250 de expensas Bs 3.800')).toMatchObject({ price: 3800, currency: 'BOB', rentExpenses: 250 })
+    expect(parseListing('+ 250 expensas, Bs 3.800')).toMatchObject({ price: 3800, rentExpenses: 250 })
+    expect(parseListing('expensas Bs 1.200, alquiler Bs 6.500')).toMatchObject({ price: 6500, rentExpenses: 1200 })
+    expect(parseListing('Bs 3.800 expensas 250')).toMatchObject({ price: 3800, rentExpenses: 250 })
+  })
+
+  it('precio con "mil" o "k" sin moneda: usa la de la operación', () => {
+    expect(parseListing('Alquilo depto 4 mil')).toMatchObject({ price: 4000, currency: 'BOB' })
+    expect(parseListing('alquilo dpto 3,5 mil mensual')).toMatchObject({ price: 3500, currency: 'BOB' })
+    expect(parseListing('Vendo casa 95k')).toMatchObject({ price: 95000, currency: 'USD' })
+    expect(parseListing('Alquilo depto 4mil + 300 de expensas')).toMatchObject({ price: 4000, rentExpenses: 300 })
+  })
+
   it('garantía de alquiler', () => {
     expect(parseListing('Alquilo depa, garantía de 2 meses').rentGuarantee).toBe('2 meses')
     expect(parseListing('garantia 1 mes').rentGuarantee).toBe('1 mes')
