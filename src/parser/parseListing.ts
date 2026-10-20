@@ -4,10 +4,15 @@
 
 import type { Currency, Listing, Operation, PropertyType, Zone } from '../domain/listing'
 import { currencyFor, ZONES } from '../domain/listing'
+import { ZONE_ALIASES } from './zoneAliases'
 
 export type ParsedListing = Partial<Listing> & {
   /** Campos que el parser encontró en el texto (los demás quedan para completar a mano). */
   detected: string[]
+  /** Campos inferidos con menos certeza (hoy, la zona a partir de una avenida): se revisan y no cuentan como detectados. */
+  suggested?: string[]
+  /** Texto que originó la zona sugerida, ej. "Av. Heroinas". */
+  zoneHint?: string
 }
 
 /** Minúsculas, sin tildes y sin emojis, para comparar sin importar cómo se escribió. */
@@ -44,7 +49,8 @@ const TYPES: [PropertyType, RegExp][] = [
 
 // ---------- Precio ----------
 
-const NUM = String.raw`(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(k)?`
+// "95k" y "4 mil" multiplican por 1.000.
+const NUM = String.raw`(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(?:(k|mil)(?![a-z]))?`
 const CUR_BEFORE = String.raw`(\$us|us\$|usd|\$|(?<![a-z])bs\.?|bolivianos)`
 const CUR_AFTER = String.raw`(\$us|us\$|usd|dolares|\$|(?<![a-z])bs\b\.?|bolivianos)`
 
@@ -115,7 +121,15 @@ const FLAGS: [keyof Listing, RegExp][] = [
 
 // ---------- Zona ----------
 
-const ZONE_PATTERNS: [Zone, RegExp][] = ZONES.map((z) => [z, new RegExp(`\\b${normalize(z)}\\b`)])
+// "Queru Queru", "Queru-Queru" y "Queruqueru" valen lo mismo.
+const ZONE_PATTERNS: [Zone, RegExp][] = ZONES.map((z) => [z, new RegExp(`\\b${normalize(z).replace(/ /g, '[\\s-]?')}\\b`)])
+
+const titleCase = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase())
+
+const ALIAS_PATTERNS: [{ zone: Zone; hint: string }, RegExp][] = ZONE_ALIASES.map(({ name, zone, avenue }) => [
+  { zone, hint: avenue ? `Av. ${titleCase(name)}` : titleCase(name) },
+  new RegExp(`${avenue ? String.raw`(?:\b(?:av|avda|avenida)\.?\s*)?` : ''}\\b${name.replace(/ /g, '\\s+')}\\b`),
+])
 
 // ---------- Parser ----------
 
@@ -131,6 +145,14 @@ export function parseListing(text: string): ParsedListing {
   set('operation', earliest(t, OPERATIONS))
   set('type', earliest(t, TYPES))
   set('zone', earliest(t, ZONE_PATTERNS))
+  if (!out.zone) {
+    const alias = earliest(t, ALIAS_PATTERNS)
+    if (alias) {
+      out.zone = alias.zone
+      out.suggested = ['zone']
+      out.zoneHint = alias.hint
+    }
+  }
 
   const price = parsePrice(t)
   if (price) {
@@ -152,9 +174,15 @@ export function parseListing(text: string): ParsedListing {
 
   const g = /garantia\W{0,3}(?:de\s*)?(\d+)\s*mes/.exec(t)
   if (g) set('rentGuarantee', `${g[1]} ${g[1] === '1' ? 'mes' : 'meses'}`)
-  set('rentExpenses', num(/expensas\W{0,3}(?:bs\.?\s*)?(\d+)/.exec(t)))
+  set('rentExpenses', parseExpenses(t))
 
   return out
+}
+
+/** "expensas 250", "250 de expensas", "+ 250 bs expensas"; "expensas incluidas" = 0. */
+function parseExpenses(t: string): number | undefined {
+  if (/expensas\s+incluidas|incluye\s+(?:las\s+)?expensas/.test(t)) return 0
+  return num(/expensas\W{0,3}(?:bs\.?\s*)?(\d+)/.exec(t)) ?? num(/(\d+)\s*(?:bs\.?\s*)?(?:de\s+)?expensas/.exec(t))
 }
 
 function num(m: RegExpExecArray | null): number | undefined {

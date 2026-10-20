@@ -40,4 +40,17 @@ export const SEED_MESSAGES: SeedMessage[] = [
     text: 'Local en alquiler Centro, 60 m2, 1 baño, Bs 4200 mensual, garantía 3 meses. Comparto 50%',
     expected: { operation: 'alquiler', type: 'local', zone: 'Centro', price: 4200, currency: 'BOB', bathrooms: 1, builtM2: 60, commissionShare: 50 },
   },
+  // PRD v2 (C3): "mil", variantes de zonas, avenidas y expensas.
+  {
+    text: 'Alquilo dpto 2 dorm, 1 baño, por la Av. Heroínas 🔑 4 mil Bs + 300 de expensas, c/garaje, aceptan mascotas. Comparto 50%',
+    expected: { operation: 'alquiler', type: 'departamento', price: 4000, currency: 'BOB', bedrooms: 2, bathrooms: 1, garage: true, pets: true, rentExpenses: 300, commissionShare: 50 },
+  },
+  {
+    text: 'VENDO CASA en Queruqueru 🏡 4 dorm, 3 baños, $us 185 mil. Papeles al día. Comparto 50%',
+    expected: { operation: 'venta', type: 'casa', zone: 'Queru Queru', price: 185000, currency: 'USD', bedrooms: 4, bathrooms: 3, docsOk: true, commissionShare: 50 },
+  },
+  {
+    text: 'Alquiler departamento Cala-Cala 3 dorm 2 baños, Bs 3,5 mil, expensas incluidas, garantía 2 meses, comision compartida 40%',
+    expected: { operation: 'alquiler', type: 'departamento', zone: 'Cala Cala', price: 3500, currency: 'BOB', bedrooms: 3, bathrooms: 2, rentExpenses: 0, rentGuarantee: '2 meses', commissionShare: 40 },
+  },
 ]

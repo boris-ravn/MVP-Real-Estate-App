@@ -9,12 +9,13 @@ describe('parseListing · mensajes semilla', () => {
     for (const key of Object.keys(m.expected)) expect(r.detected).toContain(key)
   })
 
-  it('criterio de aceptación: detecta operación, tipo, precio, dormitorios (si aplica) y zona en los 8', () => {
+  it('criterio de aceptación: detecta operación, tipo, precio, dormitorios (si aplica) y zona (o la sugiere) en todos', () => {
     for (const m of SEED_MESSAGES) {
       const r = parseListing(m.text)
-      const required = ['operation', 'type', 'price', 'zone']
+      const required = ['operation', 'type', 'price']
       if (r.type !== 'terreno' && r.type !== 'local') required.push('bedrooms')
       for (const key of required) expect(r.detected, `${key} en: ${m.text}`).toContain(key)
+      expect([...r.detected, ...(r.suggested ?? [])], `zona en: ${m.text}`).toContain('zone')
     }
   })
 })
@@ -80,6 +81,51 @@ describe('parseListing · casos borde', () => {
     expect(parseListing('comparto 40%').commissionShare).toBe(40)
     expect(parseListing('comisión compartida 50/50').commissionShare).toBe(50)
     expect(parseListing('Comisión compartida: 30 %').commissionShare).toBe(30)
+  })
+
+  it('precio con "mil" (C3)', () => {
+    expect(parseListing('4 mil Bs')).toMatchObject({ price: 4000, currency: 'BOB' })
+    expect(parseListing('4mil bs')).toMatchObject({ price: 4000, currency: 'BOB' })
+    expect(parseListing('Bs 4 mil')).toMatchObject({ price: 4000, currency: 'BOB' })
+    expect(parseListing('Bs 3,5 mil')).toMatchObject({ price: 3500, currency: 'BOB' })
+    expect(parseListing('3.5 mil bolivianos')).toMatchObject({ price: 3500, currency: 'BOB' })
+    expect(parseListing('95 mil $us')).toMatchObject({ price: 95000, currency: 'USD' })
+    expect(parseListing('$us 95 mil')).toMatchObject({ price: 95000, currency: 'USD' })
+    expect(parseListing('Alquilo depto, precio 4 mil')).toMatchObject({ price: 4000, currency: 'BOB' })
+  })
+
+  it('zona: con guion o pegada (C3)', () => {
+    expect(parseListing('dpto en Queru-Queru').zone).toBe('Queru Queru')
+    expect(parseListing('dpto en queruqueru').zone).toBe('Queru Queru')
+    expect(parseListing('casa Cala-Cala').zone).toBe('Cala Cala')
+    expect(parseListing('casa calacala').zone).toBe('Cala Cala')
+  })
+
+  it('zona sugerida por avenida o lugar, sin contarla como detectada (C3)', () => {
+    for (const text of ['depto por Av. Heroínas', 'depto avenida heroinas', 'depto Avda Heroínas', 'depto sobre la Heroínas']) {
+      const r = parseListing(text)
+      expect(r, text).toMatchObject({ zone: 'Centro', suggested: ['zone'], zoneHint: 'Av. Heroinas' })
+      expect(r.detected).not.toContain('zone')
+    }
+    expect(parseListing('a 2 cuadras de la Plaza Colón')).toMatchObject({ zone: 'Centro', zoneHint: 'Plaza Colon' })
+    expect(parseListing('frente a la plaza 14 de septiembre').zone).toBe('Centro')
+  })
+
+  it('una zona de la lista gana sobre la sugerida por avenida', () => {
+    const r = parseListing('depto en Sarco, cerca de la Av. Heroínas')
+    expect(r.zone).toBe('Sarco')
+    expect(r.detected).toContain('zone')
+    expect(r.suggested).toBeUndefined()
+  })
+
+  it('expensas: varios formatos (C3)', () => {
+    expect(parseListing('expensas 250').rentExpenses).toBe(250)
+    expect(parseListing('expensas: Bs 250').rentExpenses).toBe(250)
+    expect(parseListing('Bs 3.000 + 250 de expensas').rentExpenses).toBe(250)
+    expect(parseListing('Bs 3.000 + 250 bs expensas')).toMatchObject({ price: 3000, rentExpenses: 250 })
+    expect(parseListing('expensas incluidas').rentExpenses).toBe(0)
+    expect(parseListing('el precio incluye expensas').rentExpenses).toBe(0)
+    expect(parseListing('Bs 3.500 + expensas').rentExpenses).toBeUndefined()
   })
 
   it('garantía de alquiler', () => {

@@ -77,7 +77,7 @@ describe('datos semilla', () => {
     for (const w of agents) expect(w).toMatch(/^\+5917000000\d$/)
   })
 
-  it('tiene 8 mensajes de ejemplo para el parser', () => {
-    expect(SEED_MESSAGES).toHaveLength(8)
+  it('tiene 11 mensajes de ejemplo para el parser (8 del v1 + 3 del v2)', () => {
+    expect(SEED_MESSAGES).toHaveLength(11)
   })
 })
