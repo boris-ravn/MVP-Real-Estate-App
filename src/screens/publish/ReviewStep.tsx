@@ -2,7 +2,7 @@ import { AlertCircle, Bath, BedDouble, Car, Check, FileCheck, Landmark, MapPin, 
 import { Fragment, useState, type ReactNode } from 'react'
 import { Chip } from '../../components/Chip'
 import { PhotoPlaceholder } from '../../components/PhotoPlaceholder'
-import { draftSummary, relevantFields, REQUIRED_FIELDS, type Draft, type DraftField } from '../../domain/draft'
+import { draftSummary, growPending, relevantFields, REQUIRED_FIELDS, type Draft, type DraftField } from '../../domain/draft'
 import { currencyFor, OPERATION_LABELS, PHOTO_IDS, TYPE_LABELS, ZONES, type Operation, type PropertyType, type Zone } from '../../domain/listing'
 import { logEvent } from '../../store/events'
 
@@ -44,11 +44,17 @@ interface Props {
  */
 export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, pending, showErrors }: Props) {
   const relevant = relevantFields(d)
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft({ ...d, [key]: value })
+  // "Te falta" only grows while on this step: a field that showed up there stays there once filled in.
+  const [stillPending, setStillPending] = useState(pending)
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
+    const next = { ...d, [key]: value }
+    setStillPending((p) => growPending(p, next))
+    setDraft(next)
+  }
   const manual = detected.length === 0 && suggested.length === 0
 
-  // A field stays in "Te falta" if it was missing on arrival or is missing now (e.g., switching to rent adds Garantía).
-  const missingNow = relevant.filter((f) => pending.includes(f) || d[f] == null)
+  // A field stays in "Te falta" if it was missing on arrival or became relevant later (e.g., switching to rent adds Garantía).
+  const missingNow = relevant.filter((f) => stillPending.includes(f) || d[f] == null)
   const done = relevant.filter((f) => !missingNow.includes(f))
   const missingNowSorted = [...missingNow.filter((f) => REQUIRED_FIELDS.includes(f)), ...missingNow.filter((f) => !REQUIRED_FIELDS.includes(f))]
   const detectedCount = relevant.filter((f) => detected.includes(f)).length

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseListing } from '../parser/parseListing'
 import { SEED_MESSAGES } from '../seed/messages'
-import { draftFromParsed, draftSummary, draftToListing, EMPTY_DRAFT, missingRequired, pendingAtStart, relevantFields } from './draft'
+import { draftFromParsed, draftSummary, draftToListing, EMPTY_DRAFT, growPending, missingRequired, pendingAtStart, relevantFields } from './draft'
 
 const agent = { name: 'Ana Pérez', whatsapp: '+59171234567', memberSince: '2026-10-15T12:00:00.000Z' }
 const now = new Date(2026, 9, 15, 12)
@@ -50,6 +50,19 @@ describe('publish draft', () => {
     expect(pending).toContain('rentExpenses')
     expect(pending).not.toContain('price')
     expect(pending).not.toContain('garage')
+  })
+
+  it('fields that become relevant later stay in "Te falta" once filled in', () => {
+    // Manual flow: no operation yet, so Garantía and Expensas are not relevant on arrival.
+    let pending = pendingAtStart(EMPTY_DRAFT)
+    expect(pending).not.toContain('rentGuarantee')
+    const rent = { ...EMPTY_DRAFT, operation: 'alquiler' as const }
+    pending = growPending(pending, rent)
+    expect(pending).toContain('rentGuarantee')
+    expect(pending).toContain('rentExpenses')
+    // Filling them in does not take them out.
+    const filled = { ...rent, rentGuarantee: '2 meses', rentExpenses: 250 }
+    expect(growPending(pending, filled)).toBe(pending)
   })
 
   it('summarizes what was detected in one line, in listing order (C2)', () => {

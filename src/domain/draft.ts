@@ -114,6 +114,15 @@ export function pendingAtStart(d: Draft, suggested: string[] = []): DraftField[]
   return relevantFields(d).filter((f) => d[f] == null || suggested.includes(f))
 }
 
+/**
+ * Adds the fields that a change made relevant and still empty (e.g., switching to rent adds
+ * Garantía and Expensas), so they stay in "Te falta" after the agent fills them in.
+ */
+export function growPending(pending: DraftField[], next: Draft): DraftField[] {
+  const added = relevantFields(next).filter((f) => next[f] == null && !pending.includes(f))
+  return added.length ? [...pending, ...added] : pending
+}
+
 const SUMMARY_BOOLS: Partial<Record<DraftField, [string, string]>> = {
   garage: ['Garaje', 'Sin garaje'],
   pets: ['Mascotas', 'Sin mascotas'],
