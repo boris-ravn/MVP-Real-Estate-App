@@ -1,6 +1,6 @@
 import { ArrowLeft, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { draftFromParsed, draftToListing, EMPTY_DRAFT, missingRequired, pendingAtStart, relevantFields, type Draft, type DraftField } from '../domain/draft'
 import type { Agent, Listing } from '../domain/listing'
 import { parseListing } from '../parser/parseListing'
@@ -12,6 +12,26 @@ import { ReviewStep } from './publish/ReviewStep'
 import { SuccessStep } from './publish/SuccessStep'
 
 type Step = 'paste' | 'review' | 'done'
+// The step lives in the URL (#/publicar?paso=revisar) so the phone's back gesture goes back a step instead of leaving Publish.
+const STEP_PARAM: Record<Step, string | null> = { paste: null, review: 'revisar', done: 'listo' }
+const stepFromParam = (p: string | null): Step => (p === 'revisar' ? 'review' : p === 'listo' ? 'done' : 'paste')
+// The pasted text survives a reload during the session.
+const TEXT_KEY = 'publish-text'
+const readText = () => {
+  try {
+    return sessionStorage.getItem(TEXT_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+const writeText = (t: string) => {
+  try {
+    if (t) sessionStorage.setItem(TEXT_KEY, t)
+    else sessionStorage.removeItem(TEXT_KEY)
+  } catch {
+    // Storage blocked: the text just won't survive a reload.
+  }
+}
 const STEPS: { key: Step; label: string }[] = [
   { key: 'paste', label: 'Pegar' },
   { key: 'review', label: 'Revisar' },
@@ -21,8 +41,16 @@ const STEPS: { key: Step; label: string }[] = [
 export function Publish() {
   const { state, dispatch } = useStore()
   const navigate = useNavigate()
-  const [step, setStep] = useState<Step>('paste')
-  const [text, setText] = useState('')
+  const [params] = useSearchParams()
+  const step = stepFromParam(params.get('paso'))
+  const goStep = (s: Step, replace = false) => navigate(STEP_PARAM[s] ? `/publicar?paso=${STEP_PARAM[s]}` : '/publicar', { replace })
+  const [text, setTextState] = useState(readText)
+  const setText = (t: string) => {
+    setTextState(t)
+    writeText(t)
+  }
+  /** What the current draft was built from; going back to Pegar and continuing without changes keeps the draft. */
+  const [source, setSource] = useState<{ manual: boolean; text: string } | null>(null)
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT)
   const [detected, setDetected] = useState<string[]>([])
   const [suggested, setSuggested] = useState<string[]>([])
@@ -44,7 +72,17 @@ export function Publish() {
     window.scrollTo(0, 0)
   }, [step])
 
+  // Reload or direct link to a later step with nothing in memory: start over at Pegar.
+  const lost = (step === 'review' && !source) || (step === 'done' && !published)
+  useEffect(() => {
+    if (lost) navigate('/publicar', { replace: true })
+  }, [lost, navigate])
+
   const goReview = (manual: boolean) => {
+    if (source && source.manual === manual && (manual || source.text === text)) {
+      goStep('review')
+      return
+    }
     const parsed: ReturnType<typeof parseListing> = manual ? { detected: [] } : parseListing(text)
     const next = draftFromParsed(parsed, manual ? '' : text)
     const fields = relevantFields(next)
@@ -63,7 +101,8 @@ export function Publish() {
     setPending(start)
     setMissingAtStart(start.length)
     setShowErrors(false)
-    setStep('review')
+    setSource({ manual, text })
+    goStep('review')
   }
 
   const publish = (agent: Agent | null = state.profile) => {
@@ -84,7 +123,9 @@ export function Publish() {
       missingAtStart,
     })
     setPublished(listing)
-    setStep('done')
+    setText('')
+    // Replaces Revisar in the history, so going back from the success screen does not publish twice.
+    goStep('done', true)
   }
 
   const missing = missingRequired(draft)
@@ -94,7 +135,7 @@ export function Publish() {
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
         <div className="flex items-center gap-1 px-2 py-1">
           {step === 'review' ? (
-            <button type="button" onClick={() => setStep('paste')} className="flex size-11 items-center justify-center rounded-full active:bg-slate-100" aria-label="Volver a pegar">
+            <button type="button" onClick={() => navigate(-1)} className="flex size-11 items-center justify-center rounded-full active:bg-slate-100" aria-label="Volver a pegar">
               <ArrowLeft size={24} />
             </button>
           ) : (
@@ -120,7 +161,7 @@ export function Publish() {
 
       {step === 'paste' && <PasteStep text={text} setText={setText} onContinue={() => goReview(false)} onManual={() => goReview(true)} />}
 
-      {step === 'review' && (
+      {step === 'review' && source && (
         <>
           <ReviewStep draft={draft} setDraft={setDraft} detected={detected} suggested={suggested} zoneHint={zoneHint} pending={pending} setPending={setPending} showErrors={showErrors} />
           <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md border-t border-slate-200 bg-white p-3">
