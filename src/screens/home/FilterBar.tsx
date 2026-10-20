@@ -30,7 +30,7 @@ const BOOLEAN_ICONS: Record<BooleanFilter, ReactNode> = {
 interface Props {
   filters: Filters
   setFilters: (f: Filters) => void
-  /** Cuántos resultados daría el estado actual (para los botones "Ver N"). */
+  /** How many results the current state would give (for the "Ver N" buttons). */
   resultCount: number
 }
 

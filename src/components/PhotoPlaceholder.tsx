@@ -10,7 +10,7 @@ const PHOTOS: Record<PhotoId, { icon: LucideIcon; label: string; gradient: strin
   patio: { icon: Trees, label: 'Patio', gradient: 'from-emerald-50 to-emerald-200 text-emerald-700' },
 }
 
-/** Foto ficticia: gradiente + ícono. No se usan imágenes de terceros. */
+/** Placeholder photo: gradient + icon. No third-party images are used. */
 export function PhotoPlaceholder({ photo, className = '', iconSize = 40 }: { photo: PhotoId; className?: string; iconSize?: number }) {
   const { icon: Icon, label, gradient } = PHOTOS[photo]
   return (

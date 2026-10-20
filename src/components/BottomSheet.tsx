@@ -9,7 +9,7 @@ interface Props {
   footer?: ReactNode
 }
 
-/** Hoja inferior, cómoda para el pulgar. Cierra con el fondo, la X o Escape. */
+/** Thumb-friendly bottom sheet. Closes via the backdrop, the X or Escape. */
 export function BottomSheet({ open, onClose, title, children, footer }: Props) {
   useEffect(() => {
     if (!open) return

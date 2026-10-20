@@ -1,9 +1,9 @@
 import type { ButtonHTMLAttributes } from 'react'
 
-/** `dashed`: dato sin completar (borde punteado). */
+/** `dashed`: missing data (dashed border). */
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean; dashed?: boolean }
 
-/** Chip táctil (≥44 px de alto). */
+/** Touch-friendly chip (≥44 px tall). */
 export function Chip({ active = false, dashed = false, className = '', children, ...props }: Props) {
   return (
     <button

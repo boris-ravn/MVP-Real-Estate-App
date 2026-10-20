@@ -21,7 +21,7 @@ export interface TrackedEvent {
   data?: Record<string, unknown>
 }
 
-/** Una sesión = una carga de la app. */
+/** One session = one app load. */
 const sessionId = Math.random().toString(36).slice(2, 10)
 
 export function currentSessionId(): string {
@@ -42,7 +42,7 @@ export function clearEvents(): void {
   writeJSON(KEYS.events, [])
 }
 
-/** Conteo por evento, en orden de primera aparición. Ej.: "session_start ×1 · filter_applied ×4". */
+/** Count per event, in order of first appearance. E.g.: "session_start ×1 · filter_applied ×4". */
 export function summarizeEvents(events: TrackedEvent[]): string {
   const counts = new Map<EventName, number>()
   for (const e of events) counts.set(e.name, (counts.get(e.name) ?? 0) + 1)

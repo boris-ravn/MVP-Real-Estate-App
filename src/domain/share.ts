@@ -2,13 +2,13 @@ import { freshness } from './freshness'
 import { listingTitle, priceWithExpenses } from './format'
 import type { Agent, Listing } from './listing'
 
-/** Link a la ficha. Sin backend, solo abre la ficha en el mismo dispositivo (limitación del prototipo). */
+/** Link to the listing. Without a backend, it only opens the listing on the same device (prototype limitation). */
 export function listingLink(id: string, base: string = `${location.origin}${location.pathname}`): string {
   return `${base}#/p/${id}`
 }
 
 /**
- * Texto estándar para pegar en grupos de WhatsApp (F6):
+ * Standard text to paste into WhatsApp groups (F6):
  *
  *   🏠 Departamento en venta – Queru Queru
  *   💵 $us 95.000 · 3 dorm · 2 baños · 110 m²
@@ -31,17 +31,17 @@ export function shareText(l: Listing, link: string, now: Date = new Date()): str
     .join('\n')
 }
 
-/** "Para asesores" (grupos) o "Para mi cliente" (C1 del PRD v2). */
+/** "Para asesores" (For agents, groups) or "Para mi cliente" (For my client) (C1 of PRD v2). */
 export type ShareMode = 'agents' | 'client'
 
-/** Por defecto: las propias se comparten en grupos; las de otros asesores, con el cliente. */
+/** Default: own listings are shared in groups; other agents' listings, with the client. */
 export function defaultShareMode(l: Pick<Listing, 'isMine'>): ShareMode {
   return l.isMine ? 'agents' : 'client'
 }
 
 /**
- * Texto para reenviar al cliente final (C1): sin comisión, autorización, asesor que publicó ni link
- * a la ficha. El contacto es quien comparte. La disponibilidad solo aparece si es reciente.
+ * Text to forward to the end client (C1): no commission, authorization, publishing agent or link
+ * to the listing. The contact is the person sharing. Availability only appears if recent.
  *
  *   🏠 Departamento en alquiler – Cala Cala
  *   💵 Bs 3.800 / mes + Bs 250 de expensas · 2 dorm · 2 baños · 85 m²
@@ -60,7 +60,7 @@ export function clientShareText(l: Listing, sender: Pick<Agent, 'name' | 'whatsa
     .join('\n')
 }
 
-/** Título, datos clave y características: lo común a los dos modos. */
+/** Title, key facts and features: what both modes share. */
 function listingLines(l: Listing): (string | false)[] {
   const area = l.type === 'terreno' ? l.landM2 : l.builtM2
   const facts = [

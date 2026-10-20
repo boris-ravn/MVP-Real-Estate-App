@@ -1,6 +1,6 @@
 export type Operation = 'venta' | 'alquiler' | 'anticretico'
 export type PropertyType = 'casa' | 'departamento' | 'terreno' | 'local'
-/** USD para venta y anticrético; BOB (Bs) para alquiler. */
+/** USD for sale and anticrético; BOB (Bs) for rent. */
 export type Currency = 'USD' | 'BOB'
 export type ListingStatus = 'active' | 'closed'
 
@@ -23,21 +23,21 @@ export const ZONES = [
 ] as const
 export type Zone = (typeof ZONES)[number]
 
-/** Las 6 fotos placeholder disponibles (gradiente + ícono). */
+/** The 6 available placeholder photos (gradient + icon). */
 export const PHOTO_IDS = ['fachada', 'living', 'cocina', 'dormitorio', 'bano', 'patio'] as const
 export type PhotoId = (typeof PHOTO_IDS)[number]
 
 export interface Agent {
   name: string
-  /** Formato internacional sin espacios, ej. "+59170000001". */
+  /** International format without spaces, e.g. "+59170000001". */
   whatsapp: string
   /** ISO date. */
   memberSince: string
 }
 
 /**
- * Ficha estándar de una propiedad. `null` significa "sin dato": la ficha lo muestra
- * explícitamente para que se note qué falta.
+ * Standard listing for a property. `null` means "no data": the listing shows it
+ * explicitly so it's clear what's missing.
  */
 export interface Listing {
   id: string
@@ -56,11 +56,11 @@ export interface Listing {
   bankCredit: boolean | null
   docsOk: boolean | null
   utilities: boolean | null
-  /** Solo alquiler, ej. "2 meses". */
+  /** Rentals only, e.g. "2 meses". */
   rentGuarantee?: string | null
-  /** Solo alquiler, expensas mensuales en Bs. */
+  /** Rentals only, monthly expenses in Bs. */
   rentExpenses?: number | null
-  /** % de la comisión que se comparte, ej. 50. */
+  /** % of the commission that is shared, e.g. 50. */
   commissionShare: number | null
   ownerAuthorized: boolean
   photos: PhotoId[]
@@ -80,7 +80,7 @@ export const OPERATION_LABELS: Record<Operation, string> = {
   anticretico: 'Anticrético',
 }
 
-/** Para frases como "Departamento en venta". */
+/** For phrases like "Departamento en venta". */
 export const OPERATION_PHRASE: Record<Operation, string> = {
   venta: 'en venta',
   alquiler: 'en alquiler',

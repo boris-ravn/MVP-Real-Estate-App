@@ -5,7 +5,7 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  // Rutas relativas para que el build funcione en cualquier host estático
+  // Relative paths so the build works on any static host
   base: './',
   test: {
     environment: 'node',

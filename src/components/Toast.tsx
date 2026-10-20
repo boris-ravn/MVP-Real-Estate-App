@@ -6,7 +6,7 @@ export interface ToastData {
   action?: { label: string; onClick: () => void }
 }
 
-/** Aviso breve sobre la barra inferior; se oculta solo a los 5 s. */
+/** Short notice above the bottom bar; hides itself after 5 s. */
 export function Toast({ toast, onDone }: { toast: ToastData | null; onDone: () => void }) {
   useEffect(() => {
     if (!toast) return

@@ -19,7 +19,7 @@ import { useFilters } from '../store/filtersContext'
 import { publicListings } from '../store/listingsReducer'
 import { FilterBar } from './home/FilterBar'
 
-/** Posición del listado, para volver al mismo lugar después de ver una ficha. */
+/** List scroll position, to return to the same spot after viewing a listing. */
 let savedScrollY = 0
 
 export function Home() {
@@ -38,7 +38,7 @@ export function Home() {
     }
   }, [])
 
-  // filter_applied: solo cuando los filtros cambian (no al montar ni al volver del detalle).
+  // filter_applied: only when filters change (not on mount or when returning from the detail).
   const lastLogged = useRef(JSON.stringify(filters))
   useEffect(() => {
     const json = JSON.stringify(filters)
@@ -47,7 +47,7 @@ export function Home() {
     logEvent('filter_applied', { filters: describeFilters(filters), results: results.length })
   }, [filters, results.length])
 
-  // Oculto para el moderador: toque largo en el logo = Reiniciar demo (entre participantes).
+  // Hidden, for the moderator: long press on the logo = reset demo (between participants).
   const resetDemo = useResetDemo()
   const longPress = useLongPress(() => {
     resetDemo()

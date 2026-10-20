@@ -1,68 +1,68 @@
-# Prototipo MVP · Red de propiedades compartidas (Cochabamba)
+# MVP prototype · Shared property network (Cochabamba)
 
-Prototipo clicable para pruebas con 3 a 5 asesores inmobiliarios. No tiene backend ni login: todo vive en el `localStorage` del teléfono. La especificación (PRD) y el plan de implementación se mantienen fuera de este repositorio.
+Clickable prototype for testing with 3 to 5 real estate agents. It has no backend and no login: everything lives in the phone's `localStorage`. The spec (PRDs), the interviews and the business plan are in the [business-idea](https://github.com/boris-ravn/business-idea) repository.
 
 Stack: Vite + React + TypeScript + Tailwind CSS v4 + React Router (HashRouter) + Vitest.
 
-## Correrlo
+## Running it
 
-Requiere Node 20 o superior.
+Requires Node 20 or later.
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # tests unitarios (parser, filtros, frescura, compartir…)
-npm run build      # build estático en dist/
-npm run preview    # sirve dist/ en http://localhost:4173
+npm test           # unit tests (parser, filters, freshness, sharing…)
+npm run build      # static build in dist/
+npm run preview    # serves dist/ at http://localhost:4173
 ```
 
-Para probarlo en tu celular dentro de la misma red Wi‑Fi: `npm run dev -- --host` y abre la URL "Network" que aparece en la consola.
+To try it on your phone on the same Wi‑Fi network: `npm run dev -- --host` and open the "Network" URL shown in the console.
 
-## Configuración (`src/config.ts`)
+## Configuration (`src/config.ts`)
 
-| Constante | Para qué sirve |
+| Constant | What it does |
 |---|---|
-| `PRODUCT_NAME` | Nombre visible del producto: `Real Estate App`. |
-| `DEMO_MODE` | Con `true`, "Consultar por WhatsApp" muestra primero un aviso con el mensaje, porque los números de la semilla son ficticios. |
+| `PRODUCT_NAME` | Product name shown to users: `Real Estate App`. |
+| `DEMO_MODE` | With `true`, "Consultar por WhatsApp" (Ask on WhatsApp) first shows a notice with the message, because the seed phone numbers are fictitious. |
 
-Después de cambiar la configuración, vuelve a hacer el build y el deploy.
+After changing the configuration, rebuild and redeploy.
 
-## Durante las pruebas con usuarios
+## During user testing
 
-- **Reiniciar la demo entre participantes:** mantén presionado el logo de la pantalla de inicio unos segundos, o abre `/#/debug` y toca **Reiniciar demo**. Así se restauran las propiedades de ejemplo y se borran el perfil y los eventos.
-- **Ver qué hizo el participante:** en `/#/debug` aparecen los eventos agrupados por sesión, con el botón **Copiar eventos** (JSON).
-- **Feedback:** se pide fuera de la app, en las preguntas de cierre de cada sesión (la app ya no tiene el botón **Opinar**). Antes de tocar **Reiniciar demo**, copia los eventos de `/#/debug`: incluyen cuántos campos detectó el parser.
-- **Tareas de la prueba (PRD §12):**
-  1. Buscar un departamento en alquiler de 2 dormitorios, con garaje, que acepte mascotas y cueste hasta Bs 4.000 → la semilla tiene 3 resultados.
-  2. Publicar pegando un mensaje de WhatsApp.
-  3. "Una de tus propiedades ya se alquiló" → en Mis propiedades está el departamento de Queru Queru en alquiler.
-  4. Compartir una propiedad en un grupo.
+- **Reset the demo between participants:** press and hold the logo on the home screen for a few seconds, or open `/#/debug` and tap **Reiniciar demo** (Reset demo). This restores the sample listings and clears the profile and events.
+- **See what the participant did:** `/#/debug` shows events grouped by session, with a **Copiar eventos** (Copy events) button (JSON).
+- **Feedback:** collected outside the app, in the closing questions of each session (the app no longer has the **Opinar** (Give feedback) button). Before tapping **Reiniciar demo**, copy the events from `/#/debug`: they include how many fields the parser detected.
+- **Test tasks (PRD §12):**
+  1. Find a 2-bedroom apartment for rent, with garage, that allows pets and costs up to Bs 4.000 → the seed has 3 results.
+  2. Publish by pasting a WhatsApp message.
+  3. "One of your listings has already been rented" → in Mis propiedades (My listings) there is the Queru Queru apartment for rent.
+  4. Share a listing in a group.
 
-## Deploy (sitio estático)
+## Deploy (static site)
 
-El build usa rutas relativas (`base: './'`) y HashRouter, así que funciona en cualquier hosting estático sin configurar redirecciones.
+The build uses relative paths (`base: './'`) and HashRouter, so it works on any static hosting without configuring redirects.
 
-**Vercel:** en vercel.com → *Add New… → Project*, importa este repositorio. Detecta *Vite* solo (build `npm run build`, output `dist`) y no hay que cambiar nada. Cada push a `main` vuelve a desplegar.
+**Vercel:** on vercel.com → *Add New… → Project*, import this repository. It detects *Vite* on its own (build `npm run build`, output `dist`) and nothing needs to change. Every push to `main` redeploys.
 
-**Netlify:** usa `npm run build` como comando de build y `dist` como carpeta de publicación. Otra opción es arrastrar la carpeta `dist/` a [app.netlify.com/drop](https://app.netlify.com/drop).
+**Netlify:** use `npm run build` as the build command and `dist` as the publish directory. Alternatively, drag the `dist/` folder onto [app.netlify.com/drop](https://app.netlify.com/drop).
 
-El bundle pesa ~110 KB con gzip y no usa fuentes ni imágenes externas, así que carga rápido con 4G.
+The bundle is ~110 KB gzipped and uses no external fonts or images, so it loads fast on 4G.
 
-## Estructura
+## Structure
 
 ```
 src/
-  config.ts               configuración única (ver arriba)
-  domain/                 lógica pura y testeada: modelo, frescura, formato, filtros, borrador, WhatsApp, compartir
-  parser/parseListing.ts  "pegar mensaje → ficha" (regex + diccionarios; se puede cambiar por un LLM sin tocar la UI)
-  seed/                   28 propiedades, 9 asesores ficticios y 8 mensajes de ejemplo; las fechas son relativas a hoy
-  store/                  estado + localStorage, log de eventos y filtros
+  config.ts               single configuration (see above)
+  domain/                 pure, tested logic: model, freshness, format, filters, draft, WhatsApp, sharing
+  parser/parseListing.ts  "paste message → listing" (regex + dictionaries; can be swapped for an LLM without touching the UI)
+  seed/                   28 listings, 9 fictitious agents and 8 sample messages; dates are relative to today
+  store/                  state + localStorage, event log and filters
   screens/                Home (F1), Detail (F2/F3), Publish (F4), MyListings (F5), Debug
-  components/             tarjeta, hojas inferiores, compartir (F6)…
+  components/             card, bottom sheets, sharing (F6)…
 ```
 
-## Limitaciones conocidas del prototipo
+## Known prototype limitations
 
-- Los datos son locales a cada teléfono: lo que publica un participante no lo ve otro, y el link "Ver ficha" del texto para compartir solo abre en ese mismo dispositivo.
-- La frescura, la comisión y la autorización del propietario las declara el propio asesor; no se verifica nada.
-- Las fotos son placeholders (gradiente + ícono).
+- Data is local to each phone: what one participant publishes is not seen by another, and the "Ver ficha" (View listing) link in the share text only opens on that same device.
+- Freshness, commission and owner authorization are self-declared by the agent; nothing is verified.
+- Photos are placeholders (gradient + icon).

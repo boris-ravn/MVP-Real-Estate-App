@@ -6,13 +6,13 @@ function startOfDay(d: Date): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
 }
 
-/** Días calendario transcurridos desde `iso` hasta `now` (0 = hoy). */
+/** Calendar days elapsed from `iso` to `now` (0 = today). */
 export function daysSince(iso: string, now: Date = new Date()): number {
   const diff = startOfDay(now) - startOfDay(new Date(iso))
   return Math.max(0, Math.round(diff / DAY_MS))
 }
 
-/** ≤3 días: fresh (verde) · 4–14: stale (ámbar) · >14: old (gris). */
+/** ≤3 days: fresh (green) · 4–14: stale (amber) · >14: old (gray). */
 export function freshnessLevel(days: number): FreshnessLevel {
   if (days <= 3) return 'fresh'
   if (days <= 14) return 'stale'
@@ -31,7 +31,7 @@ export function freshness(iso: string, now: Date = new Date()) {
   return { days, level: freshnessLevel(days), label: freshnessLabel(days) }
 }
 
-/** Umbral de F5: más de 7 días sin confirmar pide confirmación. */
+/** F5 threshold: more than 7 days unconfirmed asks for confirmation. */
 export const NEEDS_CONFIRMATION_AFTER_DAYS = 7
 
 export function needsConfirmation(iso: string, now: Date = new Date()): boolean {

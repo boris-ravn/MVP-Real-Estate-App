@@ -6,8 +6,8 @@ import { draftFromParsed, draftSummary, draftToListing, EMPTY_DRAFT, missingRequ
 const agent = { name: 'Ana Pérez', whatsapp: '+59171234567', memberSince: '2026-10-15T12:00:00.000Z' }
 const now = new Date(2026, 9, 15, 12)
 
-describe('borrador de publicación', () => {
-  it('un mensaje semilla produce una ficha publicable con "Confirmado hoy"', () => {
+describe('publish draft', () => {
+  it('a seed message produces a publishable listing with "Confirmado hoy"', () => {
     const text = SEED_MESSAGES[1].text
     const draft = draftFromParsed(parseListing(text), text)
     expect(missingRequired(draft)).toEqual([])
@@ -26,7 +26,7 @@ describe('borrador de publicación', () => {
     })
   })
 
-  it('conserva las expensas detectadas en alquiler (C5)', () => {
+  it('keeps detected expenses on rentals (C5)', () => {
     const text = 'Alquilo depto en Cala Cala, 2 dorm, Bs 3.800, expensas Bs 250'
     const draft = draftFromParsed(parseListing(text), text)
     expect(draft.rentExpenses).toBe(250)
@@ -34,13 +34,13 @@ describe('borrador de publicación', () => {
     expect(draftToListing(draft, agent, now).rentExpenses).toBe(250)
   })
 
-  it('las expensas no aplican fuera de alquiler', () => {
+  it('expenses do not apply outside rentals', () => {
     const draft = { ...EMPTY_DRAFT, operation: 'venta' as const, type: 'departamento' as const, zone: 'Sarco' as const, price: 90000, rentExpenses: 300 }
     expect(relevantFields(draft)).not.toContain('rentExpenses')
     expect(draftToListing(draft, agent, now).rentExpenses).toBeNull()
   })
 
-  it('"Te falta" al llegar: los campos sin dato más los sugeridos (C2)', () => {
+  it('"Te falta" on arrival: fields without data plus suggested ones (C2)', () => {
     const text = 'Alquilo dpto 2 dorm por Av. Heroínas, 4 mil Bs, c/garaje. Comparto 50%'
     const parsed = parseListing(text)
     const draft = draftFromParsed(parsed, text)
@@ -52,7 +52,7 @@ describe('borrador de publicación', () => {
     expect(pending).not.toContain('garage')
   })
 
-  it('resume lo detectado en una línea, en el orden de la ficha (C2)', () => {
+  it('summarizes what was detected in one line, in listing order (C2)', () => {
     const text = SEED_MESSAGES[1].text
     const draft = draftFromParsed(parseListing(text), text)
     expect(draftSummary(draft, ['operation', 'type', 'price', 'bedrooms', 'garage', 'pets', 'commissionShare'])).toBe(
@@ -60,12 +60,12 @@ describe('borrador de publicación', () => {
     )
   })
 
-  it('exige operación, tipo, zona y precio', () => {
+  it('requires operation, type, zone and price', () => {
     expect(missingRequired(EMPTY_DRAFT)).toEqual(['operation', 'type', 'zone', 'price'])
     expect(() => draftToListing(EMPTY_DRAFT, agent, now)).toThrow()
   })
 
-  it('los campos relevantes dependen del tipo y la operación', () => {
+  it('relevant fields depend on type and operation', () => {
     const land = relevantFields({ type: 'terreno', operation: 'venta' })
     expect(land).not.toContain('bedrooms')
     expect(land).toContain('landM2')
@@ -73,7 +73,7 @@ describe('borrador de publicación', () => {
     expect(relevantFields({ type: 'departamento', operation: 'alquiler' })).not.toContain('bankCredit')
   })
 
-  it('descarta datos que no aplican al tipo final', () => {
+  it('drops data that does not apply to the final type', () => {
     const draft = { ...EMPTY_DRAFT, operation: 'venta' as const, type: 'terreno' as const, zone: 'Sacaba' as const, price: 50000, bedrooms: 3 }
     expect(draftToListing(draft, agent, now).bedrooms).toBeNull()
   })

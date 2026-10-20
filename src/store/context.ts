@@ -12,11 +12,11 @@ export function seedState(): AppState {
 
 export function useStore() {
   const ctx = useContext(StoreContext)
-  if (!ctx) throw new Error('useStore debe usarse dentro de <StoreProvider>')
+  if (!ctx) throw new Error('useStore must be used inside <StoreProvider>')
   return ctx
 }
 
-/** "Reiniciar demo": vuelve a la semilla, borra perfil y eventos. Para usar entre participantes. */
+/** "Reiniciar demo" (Reset demo): goes back to the seed, clears profile and events. For use between participants. */
 export function resetDemo(dispatch: Dispatch<Action>): void {
   removeKeys([KEYS.listings, KEYS.profile])
   clearEvents()

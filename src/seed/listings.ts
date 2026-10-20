@@ -5,13 +5,13 @@ import { demoSelfAgent, seedAgents } from './agents'
 const DAY_MS = 24 * 60 * 60 * 1000
 
 type SeedRow = Omit<Listing, 'id' | 'currency' | 'lastConfirmedAt' | 'createdAt' | 'status' | 'isMine' | 'agent' | 'photos'> & {
-  /** Días desde la última confirmación (relativo a "hoy" para que la mezcla de frescura no envejezca). */
+  /** Days since the last confirmation (relative to "today" so the freshness mix does not go stale). */
   confirmedDaysAgo: number
   agent: Agent | 'me'
   photos?: PhotoId[]
 }
 
-/** Campos desconocidos por defecto: la semilla solo declara lo que cada propiedad sí tiene. */
+/** Fields unknown by default: the seed only declares what each listing does have. */
 const UNKNOWN = {
   bedrooms: null,
   bathrooms: null,
@@ -38,7 +38,7 @@ export function buildSeedListings(now: Date = new Date()): Listing[] {
   const a = seedAgents(now)
 
   const rows: SeedRow[] = [
-    // ---------- Venta (USD) ----------
+    // ---------- Sale (USD) ----------
     { ...UNKNOWN, operation: 'venta', type: 'departamento', zone: 'Queru Queru', price: 95000, bedrooms: 3, bathrooms: 2, builtM2: 110, garage: true, pets: true, storage: true, bankCredit: true, docsOk: true, utilities: true, commissionShare: 50, ownerAuthorized: true, confirmedDaysAgo: 1, agent: a.carla,
       description: 'Departamento en 5.º piso con vista a la cordillera, a una cuadra de la Av. Santa Cruz. Cocina americana, lavandería y portería 24 h.' },
     { ...UNKNOWN, operation: 'venta', type: 'departamento', zone: 'Cala Cala', price: 128000, bedrooms: 3, bathrooms: 2, builtM2: 125, garage: true, pets: false, storage: true, bankCredit: true, docsOk: true, utilities: true, commissionShare: 40, ownerAuthorized: false, confirmedDaysAgo: 5, agent: a.jorge,
@@ -68,7 +68,7 @@ export function buildSeedListings(now: Date = new Date()): Listing[] {
     { ...UNKNOWN, operation: 'venta', type: 'casa', zone: 'Tiquipaya', price: 128000, bedrooms: 3, bathrooms: 2, builtM2: 220, landM2: 350, garage: true, pets: true, storage: true, bankCredit: true, docsOk: true, utilities: true, commissionShare: 50, ownerAuthorized: true, confirmedDaysAgo: 16, agent: 'me',
       description: 'Casa con jardín y vista al cerro, a 10 minutos de la plaza de Tiquipaya.' },
 
-    // ---------- Alquiler (Bs) ----------
+    // ---------- Rent (Bs) ----------
     { ...UNKNOWN, operation: 'alquiler', type: 'departamento', zone: 'Cala Cala', price: 3800, bedrooms: 2, bathrooms: 2, builtM2: 85, garage: true, pets: true, storage: false, docsOk: true, utilities: true, rentGuarantee: '2 meses', rentExpenses: 250, commissionShare: 50, ownerAuthorized: true, confirmedDaysAgo: 1, agent: a.carla,
       description: 'Departamento en 4.º piso con balcón, a dos cuadras de la Av. América. Cocina equipada y portería 24 h.' },
     { ...UNKNOWN, operation: 'alquiler', type: 'departamento', zone: 'Cala Cala', price: 2900, bedrooms: 2, bathrooms: 1, builtM2: 70, garage: true, pets: true, docsOk: true, utilities: true, rentGuarantee: '1 mes', rentExpenses: 200, commissionShare: 40, ownerAuthorized: false, confirmedDaysAgo: 6, agent: a.daniela,

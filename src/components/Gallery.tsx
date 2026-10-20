@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { PhotoId } from '../domain/listing'
 import { PhotoPlaceholder } from './PhotoPlaceholder'
 
-/** Galería deslizable (scroll-snap) con indicador de posición. */
+/** Swipeable gallery (scroll-snap) with a position indicator. */
 export function Gallery({ photos }: { photos: PhotoId[] }) {
   const [index, setIndex] = useState(0)
   const list: PhotoId[] = photos.length ? photos : ['fachada']

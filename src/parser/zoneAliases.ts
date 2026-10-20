@@ -1,17 +1,17 @@
 import type { Zone } from '../domain/listing'
 
 /**
- * Avenidas y lugares conocidos → zona sugerida (C3 del PRD v2).
+ * Known avenues and landmarks → suggested zone (C3 of PRD v2).
  *
- * El nombre va en minúsculas y sin tildes (como lo deja `normalize`). Para avenidas,
- * el parser acepta el nombre con o sin "Av.", "Avda." o "Avenida" delante.
+ * Names are lowercase and accent-free (as `normalize` leaves them). For avenues,
+ * the parser accepts the name with or without "Av.", "Avda." or "Avenida" in front.
  *
- * Una avenida puede cruzar varias zonas: por eso la zona solo se *sugiere* y el
- * asesor la revisa. Solo se incluyen asociaciones validadas.
+ * An avenue can cross several zones: that is why the zone is only *suggested* and the
+ * agent reviews it. Only validated associations are included.
  *
- * PENDIENTE (Boris): asignar zona a Av. Pando, Av. América, Av. Santa Cruz, Av. Ayacucho,
+ * TODO (Boris): assign a zone to Av. Pando, Av. América, Av. Santa Cruz, Av. Ayacucho,
  * Av. Villazón, Av. Blanco Galindo, Av. Melchor Pérez de Olguín, Av. Circunvalación,
- * El Prado, Laguna Alalay y Cristo de la Concordia.
+ * El Prado, Laguna Alalay and Cristo de la Concordia.
  */
 export const ZONE_ALIASES: { name: string; zone: Zone; avenue?: boolean }[] = [
   { name: 'plaza 14 de septiembre', zone: 'Centro' },

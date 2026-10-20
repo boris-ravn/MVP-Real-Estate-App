@@ -4,7 +4,7 @@ import { seedState, StoreContext } from './context'
 import { reducer, type AppState } from './listingsReducer'
 import { KEYS, readJSON, writeJSON } from './storage'
 
-/** Primer uso: carga la semilla. Después: lo guardado en localStorage. */
+/** First use: loads the seed. Afterwards: whatever is saved in localStorage. */
 function loadState(): AppState {
   const listings = readJSON<Listing[]>(KEYS.listings)
   if (!listings) return seedState()

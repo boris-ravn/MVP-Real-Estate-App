@@ -1,21 +1,21 @@
-// Parser determinista "mensaje de WhatsApp → ficha" (regex + diccionarios).
-// La UI solo depende de la firma de parseListing, así que más adelante se puede
-// reemplazar por un LLM sin tocar las pantallas.
+// Deterministic "WhatsApp message → listing" parser (regex + dictionaries).
+// The UI only depends on parseListing's signature, so it can later be
+// replaced by an LLM without touching the screens.
 
 import type { Currency, Listing, Operation, PropertyType, Zone } from '../domain/listing'
 import { currencyFor, ZONES } from '../domain/listing'
 import { ZONE_ALIASES } from './zoneAliases'
 
 export type ParsedListing = Partial<Listing> & {
-  /** Campos que el parser encontró en el texto (los demás quedan para completar a mano). */
+  /** Fields the parser found in the text (the rest are left to fill in by hand). */
   detected: string[]
-  /** Campos inferidos con menos certeza (hoy, la zona a partir de una avenida): se revisan y no cuentan como detectados. */
+  /** Fields inferred with less certainty (today, the zone from an avenue): they get reviewed and do not count as detected. */
   suggested?: string[]
-  /** Texto que originó la zona sugerida, ej. "Av. Heroinas". */
+  /** Text the suggested zone came from, e.g. "Av. Heroinas". */
   zoneHint?: string
 }
 
-/** Minúsculas, sin tildes y sin emojis, para comparar sin importar cómo se escribió. */
+/** Lowercase, no accents and no emojis, to compare regardless of how it was written. */
 export function normalize(text: string): string {
   return text
     .normalize('NFD')
@@ -24,7 +24,7 @@ export function normalize(text: string): string {
     .toLowerCase()
 }
 
-/** Primer patrón (por posición en el texto) que coincide. */
+/** First pattern (by position in the text) that matches. */
 function earliest<T>(text: string, patterns: [T, RegExp][]): T | undefined {
   let best: { value: T; index: number } | undefined
   for (const [value, re] of patterns) {
@@ -47,9 +47,9 @@ const TYPES: [PropertyType, RegExp][] = [
   ['local', /\b(?:local(?:es)?|oficinas?)\b/],
 ]
 
-// ---------- Precio ----------
+// ---------- Price ----------
 
-// "95k" y "4 mil" multiplican por 1.000.
+// "95k" and "4 mil" multiply by 1,000.
 const NUM = String.raw`(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(?:(k|mil)(?![a-z]))?`
 const CUR_BEFORE = String.raw`(\$us|us\$|usd|\$|(?<![a-z])bs\.?|bolivianos)`
 const CUR_AFTER = String.raw`(\$us|us\$|usd|dolares|\$|(?<![a-z])bs\b\.?|bolivianos)`
@@ -71,7 +71,7 @@ interface Span {
 
 const overlaps = (a: Span, b?: Span) => !!b && a.start < b.end && b.start < a.end
 
-/** `skip`: dónde están las expensas, para no confundirlas con el precio. */
+/** `skip`: where the expensas are, so they are not mistaken for the price. */
 function parsePrice(t: string, skip?: Span): { price: number; currency?: Currency } | undefined {
   const candidates: { index: number; price: number; currency: Currency }[] = []
   const add = (m: RegExpMatchArray, price: number, currency: Currency) => {
@@ -82,7 +82,7 @@ function parsePrice(t: string, skip?: Span): { price: number; currency?: Currenc
   const valid = candidates.filter((c) => c.price > 0).sort((a, b) => a.index - b.index)
   if (valid.length) return valid[0]
 
-  // Sin moneda: "precio 3.200", o un número con "mil"/"k" ("4 mil"); la moneda sale de la operación.
+  // No currency: "precio 3.200", or a number with "mil"/"k" ("4 mil"); the currency comes from the operation.
   for (const re of [new RegExp(`precio\\W{0,3}${NUM}`, 'g'), /(?<![\d.,])(\d+(?:[.,]\d+)?)\s*(k|mil)(?![a-z])/g]) {
     for (const m of t.matchAll(re)) {
       if (!overlaps({ start: m.index!, end: m.index! + m[0].length }, skip)) return { price: toNumber(m[1], m[2]) }
@@ -91,7 +91,7 @@ function parsePrice(t: string, skip?: Span): { price: number; currency?: Currenc
   return undefined
 }
 
-// ---------- Superficie ----------
+// ---------- Area ----------
 
 function parseAreas(t: string, type?: PropertyType): { builtM2?: number; landM2?: number } {
   const out: { builtM2?: number; landM2?: number } = {}
@@ -108,9 +108,9 @@ function parseAreas(t: string, type?: PropertyType): { builtM2?: number; landM2?
   return out
 }
 
-// ---------- Booleanos ----------
+// ---------- Booleans ----------
 
-/** true si aparece, false si aparece negado ("sin garaje", "no se aceptan mascotas"). */
+/** true if it appears, false if it appears negated ("sin garaje", "no se aceptan mascotas"). */
 function flag(t: string, re: RegExp): boolean | undefined {
   const m = re.exec(t)
   if (!m) return undefined
@@ -127,9 +127,9 @@ const FLAGS: [keyof Listing, RegExp][] = [
   ['utilities', /servicios basicos|todos los servicios|servicios completos/],
 ]
 
-// ---------- Zona ----------
+// ---------- Zone ----------
 
-// "Queru Queru", "Queru-Queru" y "Queruqueru" valen lo mismo.
+// "Queru Queru", "Queru-Queru" and "Queruqueru" are equivalent.
 const ZONE_PATTERNS: [Zone, RegExp][] = ZONES.map((z) => [z, new RegExp(`\\b${normalize(z).replace(/ /g, '[\\s-]?')}\\b`)])
 
 const titleCase = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase())
@@ -162,7 +162,7 @@ export function parseListing(text: string): ParsedListing {
     }
   }
 
-  // Primero las expensas, para que su monto no se tome como precio ("250 de expensas Bs 3.800").
+  // Expensas first, so their amount is not taken as the price ("250 de expensas Bs 3.800").
   const expenses = parseExpenses(t)
   const price = parsePrice(t, expenses?.span)
   if (price) {
@@ -190,13 +190,13 @@ export function parseListing(text: string): ParsedListing {
 }
 
 const AMOUNT = String.raw`(\d{1,3}(?:[.,]\d{3})+|\d+)`
-// El monto va antes solo si está claro que es de las expensas: "+ 250 expensas", "250 de expensas".
+// The amount comes first only when it clearly belongs to the expensas: "+ 250 expensas", "250 de expensas".
 const EXPENSES_BEFORE = new RegExp(String.raw`(?:\+\s*(?:bs\.?\s*)?${AMOUNT}\s*(?:bs\.?\s*)?(?:de\s+)?|(?<![\d.,])${AMOUNT}\s*(?:bs\.?\s*)?de\s+)expensas`)
 const EXPENSES_AFTER = new RegExp(String.raw`expensas\W{0,3}(?:bs\.?\s*)?${AMOUNT}`)
 
 /**
  * "expensas 250", "250 de expensas", "+ 250 bs expensas"; "expensas incluidas" = 0.
- * `span` marca dónde está el monto, para que parsePrice no lo tome como precio.
+ * `span` marks where the amount is, so parsePrice does not take it as the price.
  */
 function parseExpenses(t: string): { value: number; span?: Span } | undefined {
   if (/expensas\s+incluidas|incluye\s+(?:las\s+)?expensas/.test(t)) return { value: 0 }

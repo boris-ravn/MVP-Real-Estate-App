@@ -8,7 +8,7 @@ import { NotFound } from './screens/NotFound'
 import { FiltersProvider } from './store/FiltersProvider'
 import { StoreProvider } from './store/store'
 
-// HashRouter: funciona en cualquier hosting estático sin configurar rewrites (incluido /#/debug).
+// HashRouter: works on any static hosting without configuring rewrites (including /#/debug).
 export default function App() {
   return (
     <StoreProvider>

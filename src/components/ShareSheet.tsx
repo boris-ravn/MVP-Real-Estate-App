@@ -14,7 +14,7 @@ const MODES: { key: ShareMode; label: string; icon: ReactNode; hint: string }[] 
   { key: 'agents', label: 'Para asesores', icon: <Handshake size={16} aria-hidden />, hint: 'Formato estándar para tus grupos: fácil de leer y con la comisión.' },
 ]
 
-/** F6 + C1 del PRD v2: texto para WhatsApp en dos modos, para asesores o para el cliente final. */
+/** F6 + C1 of PRD v2: WhatsApp text in two modes, for agents or for the end client. */
 export function ShareSheet({ listing, source, onClose }: { listing: Listing | null; source: string; onClose: () => void }) {
   return (
     <BottomSheet open={!!listing} onClose={onClose} title="Compartir">

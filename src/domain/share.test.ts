@@ -6,8 +6,8 @@ const now = new Date(2026, 9, 15, 12)
 const listings = buildSeedListings(now)
 const byId = (id: string) => listings.find((l) => l.id === id)!
 
-describe('texto para compartir', () => {
-  it('sigue el formato de F6 (ejemplo del PRD)', () => {
+describe('share text', () => {
+  it('follows the F6 format (PRD example)', () => {
     const l = { ...byId('seed-01'), storage: false, bankCredit: false, ownerAuthorized: false, lastConfirmedAt: now.toISOString() }
     expect(shareText(l, 'https://x.app/#/p/seed-01', now)).toBe(
       [
@@ -21,20 +21,20 @@ describe('texto para compartir', () => {
     )
   })
 
-  it('alquiler en Bs por mes, autorización y frescura no reciente', () => {
+  it('rental in Bs per month, authorization and non-recent freshness', () => {
     const text = shareText(byId('seed-16'), 'L', now)
     expect(text).toContain('💵 Bs 2.900 / mes + Bs 200 de expensas · 2 dorm · 1 baño · 70 m²')
     expect(text).toContain('🕒 Confirmado hace 6 días')
   })
 
-  it('omite líneas sin datos (terreno sin características)', () => {
+  it('omits lines without data (land with no features)', () => {
     const text = shareText(byId('seed-12'), 'L', now)
     expect(text).toContain('💵 $us 140.000 · 800 m²')
     expect(text).not.toContain('🚗')
     expect(text.split('\n')).toHaveLength(5)
   })
 
-  it('modo cliente: sin comisión, autorización, asesor ni link; contacto de quien comparte (C1)', () => {
+  it('client mode: no commission, authorization, agent or link; contact of the person sharing (C1)', () => {
     const l = { ...byId('seed-01'), storage: false, bankCredit: false, ownerAuthorized: true, lastConfirmedAt: now.toISOString() }
     const text = clientShareText(l, { name: 'Valeria Rojas', whatsapp: '+59170000009' }, now)
     expect(text).toBe(
@@ -50,19 +50,19 @@ describe('texto para compartir', () => {
     expect(text).not.toContain(l.agent.name)
   })
 
-  it('modo cliente: sin línea de disponibilidad si no es reciente; con expensas en alquiler', () => {
+  it('client mode: no availability line if not recent; with expenses on rentals', () => {
     const text = clientShareText(byId('seed-16'), { name: 'Valeria Rojas', whatsapp: '+59170000009' }, now)
     expect(text).toContain('💵 Bs 2.900 / mes + Bs 200 de expensas')
     expect(text).not.toContain('Disponible')
     expect(text).not.toContain('Confirmado')
   })
 
-  it('modo por defecto: propias para asesores, de otros para el cliente', () => {
+  it('default mode: own listings for agents, other listings for the client', () => {
     expect(defaultShareMode({ isMine: true })).toBe('agents')
     expect(defaultShareMode({ isMine: false })).toBe('client')
   })
 
-  it('arma el link a la ficha con hash', () => {
+  it('builds the hash link to the listing', () => {
     expect(listingLink('seed-01', 'https://x.app/')).toBe('https://x.app/#/p/seed-01')
   })
 })

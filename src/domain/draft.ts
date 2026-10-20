@@ -3,7 +3,7 @@ import type { Agent, Listing, Operation, PhotoId, PropertyType, Zone } from './l
 import { formatPrice } from './format'
 import { currencyFor, OPERATION_LABELS, TYPE_LABELS } from './listing'
 
-/** Ficha en edición (paso 2 de Publicar). `null` = el participante aún no lo completó. */
+/** Listing being edited (step 2 of Publicar). `null` = the participant hasn't filled it in yet. */
 export interface Draft {
   operation: Operation | null
   type: PropertyType | null
@@ -20,7 +20,7 @@ export interface Draft {
   docsOk: boolean | null
   utilities: boolean | null
   rentGuarantee: string | null
-  /** Solo alquiler, Bs por mes; 0 = incluidas. */
+  /** Rentals only, Bs per month; 0 = included. */
   rentExpenses: number | null
   commissionShare: number | null
   ownerAuthorized: boolean
@@ -79,7 +79,7 @@ export function draftFromParsed(p: ParsedListing, text: string): Draft {
 
 export const EMPTY_DRAFT: Draft = draftFromParsed({ detected: [] }, '')
 
-/** Campos que tienen sentido según tipo y operación (un terreno no tiene baños). */
+/** Fields that make sense for the type and operation (a plot of land has no bathrooms). */
 export function relevantFields(d: Pick<Draft, 'type' | 'operation'>): DraftField[] {
   const land = d.type === 'terreno'
   const local = d.type === 'local'
@@ -107,8 +107,8 @@ export function relevantFields(d: Pick<Draft, 'type' | 'operation'>): DraftField
 }
 
 /**
- * Campos que van en "Te falta" al llegar a Revisar (C2): los relevantes sin dato y los sugeridos.
- * Se calcula una sola vez, para que un campo no salte al resumen mientras el asesor lo completa.
+ * Fields that go in "Te falta" (Missing) on reaching Revisar (C2): relevant ones without data plus suggested ones.
+ * Computed only once, so a field doesn't jump to the summary while the agent is filling it in.
  */
 export function pendingAtStart(d: Draft, suggested: string[] = []): DraftField[] {
   return relevantFields(d).filter((f) => d[f] == null || suggested.includes(f))
@@ -123,7 +123,7 @@ const SUMMARY_BOOLS: Partial<Record<DraftField, [string, string]>> = {
   utilities: ['Servicios completos', 'Servicios incompletos'],
 }
 
-/** Resumen en una línea de los campos dados, en el orden de la ficha: "Departamento · Alquiler · Bs 3.500 · 2 dorm · Garaje". */
+/** One-line summary of the given fields, in listing order: "Departamento · Alquiler · Bs 3.500 · 2 dorm · Garaje". */
 export function draftSummary(d: Draft, fields: DraftField[]): string {
   const parts: string[] = []
   const has = (f: DraftField) => fields.includes(f) && d[f] != null
@@ -149,7 +149,7 @@ export function missingRequired(d: Draft): DraftField[] {
 }
 
 export function draftToListing(d: Draft, agent: Agent, now: Date = new Date()): Listing {
-  if (missingRequired(d).length) throw new Error('Faltan campos obligatorios')
+  if (missingRequired(d).length) throw new Error('Missing required fields')
   const relevant = new Set(relevantFields(d))
   const keep = <K extends DraftField>(k: K): Draft[K] | null => (relevant.has(k) ? d[k] : null)
   const iso = now.toISOString()

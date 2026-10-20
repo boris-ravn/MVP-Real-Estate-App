@@ -1,4 +1,4 @@
-/** Copia texto al portapapeles; usa un textarea temporal si la Clipboard API no está disponible (http, WebViews viejos). */
+/** Copies text to the clipboard; falls back to a temporary textarea if the Clipboard API is unavailable (http, old WebViews). */
 export async function copyText(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text)

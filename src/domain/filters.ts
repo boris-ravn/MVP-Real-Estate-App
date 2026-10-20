@@ -14,18 +14,18 @@ export const BOOLEAN_FILTER_LABELS: Record<BooleanFilter, string> = {
   utilities: 'Servicios básicos completos',
 }
 
-/** Mínimo de dormitorios: 2 = "2 o más" (C6 del PRD v2). */
+/** Minimum bedrooms: 2 = "2 o más" (2 or more) (C6 of PRD v2). */
 export type BedroomsFilter = 1 | 2 | 3 | 4
 
 export interface Filters {
   operation: Operation | null
   type: PropertyType | null
   zones: Zone[]
-  /** El precio se interpreta en la moneda de la operación elegida (Bs alquiler, $us el resto). */
+  /** Price is read in the selected operation's currency (Bs for rentals, $us otherwise). */
   priceMin: number | null
   priceMax: number | null
   bedrooms: BedroomsFilter | null
-  /** true = exigir que la propiedad lo tenga (las que no tienen el dato quedan fuera). */
+  /** true = require the listing to have it (listings without the data are excluded). */
   required: Record<BooleanFilter, boolean>
 }
 
@@ -78,7 +78,7 @@ export function activeFilterKeys(f: Filters): FilterKey[] {
 export function removeFilter(f: Filters, key: FilterKey): Filters {
   switch (key) {
     case 'operation':
-      // El precio depende de la moneda de la operación: se quitan juntos.
+      // Price depends on the operation's currency: they are removed together.
       return { ...f, operation: null, priceMin: null, priceMax: null }
     case 'type':
       return { ...f, type: null }
@@ -128,7 +128,7 @@ function groupShort(n: number): string {
   return formatPrice(n, 'BOB').replace('Bs ', '')
 }
 
-/** Atajos de precio máximo por operación, para filtrar con un toque. */
+/** Max price shortcuts per operation, for one-tap filtering. */
 export const PRICE_PRESETS: Record<Operation, number[]> = {
   venta: [80000, 120000, 200000, 350000],
   alquiler: [2500, 4000, 6000],
@@ -136,8 +136,8 @@ export const PRICE_PRESETS: Record<Operation, number[]> = {
 }
 
 /**
- * Para el estado vacío: el filtro cuya eliminación devuelve más resultados.
- * Ej.: "No hay resultados. Prueba quitando Baulera".
+ * For the empty state: the filter whose removal returns the most results.
+ * E.g.: "No hay resultados. Prueba quitando Baulera".
  */
 export function mostRestrictiveFilter(
   listings: Listing[],
@@ -151,7 +151,7 @@ export function mostRestrictiveFilter(
   return best
 }
 
-/** Resumen compacto para el evento filter_applied. */
+/** Compact summary for the filter_applied event. */
 export function describeFilters(f: Filters): Record<string, unknown> {
   return Object.fromEntries(
     activeFilterKeys(f).map((k) => {

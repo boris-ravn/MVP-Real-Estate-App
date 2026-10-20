@@ -9,7 +9,7 @@ const TYPE_NOUN: Record<PropertyType, string> = {
   local: 'local',
 }
 
-/** wa.me exige el número solo con dígitos, en formato internacional y sin "+". */
+/** wa.me requires the number as digits only, in international format and without "+". */
 export function waNumber(phone: string): string {
   return phone.replace(/\D/g, '')
 }
@@ -26,7 +26,7 @@ export function contactMessage(l: Listing, productName: string = PRODUCT_NAME): 
   )
 }
 
-/** Sin número abre WhatsApp para elegir el chat (útil para compartir). */
+/** Without a number, opens WhatsApp to pick the chat (useful for sharing). */
 export function waUrl(text: string, phone?: string): string {
   const base = phone ? `https://wa.me/${waNumber(phone)}` : 'https://wa.me/'
   return `${base}?text=${encodeURIComponent(text)}`

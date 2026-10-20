@@ -6,7 +6,7 @@ function monthsAgo(now: Date, months: number): string {
   return new Date(now.getTime() - months * MONTH_MS).toISOString()
 }
 
-/** Asesores ficticios con números claramente falsos. */
+/** Fictional agents with clearly fake numbers. */
 export function seedAgents(now: Date) {
   return {
     carla: { name: 'Carla Rojas Vargas', whatsapp: '+59170000001', memberSince: monthsAgo(now, 8) },
@@ -22,8 +22,8 @@ export function seedAgents(now: Date) {
 }
 
 /**
- * Perfil con el que aparecen las propiedades "mías" de la semilla hasta que el
- * participante registre su nombre y WhatsApp al publicar por primera vez.
+ * Profile shown on the seed's "own" listings until the participant
+ * registers their name and WhatsApp when publishing for the first time.
  */
 export function demoSelfAgent(now: Date): Agent {
   return { name: 'Asesor demo', whatsapp: '+59170000099', memberSince: monthsAgo(now, 1) }

@@ -2,11 +2,11 @@ import type { Listing } from '../domain/listing'
 
 export interface SeedMessage {
   text: string
-  /** Lo que el parser debería extraer como mínimo (usado en los tests de la Fase 4). */
+  /** What the parser should extract at minimum (used in the Phase 4 tests). */
   expected: Partial<Listing>
 }
 
-/** Mensajes estilo WhatsApp para probar el parser "pegar mensaje → ficha". */
+/** WhatsApp-style messages to test the "paste message → listing" parser. */
 export const SEED_MESSAGES: SeedMessage[] = [
   {
     text: 'VENDO DPTO 🏢 Queru Queru\n3 dorm, 2 baños, 110 m2\nc/garaje y baulera\nPrecio: 95.000 $us\nAcepta crédito bancario ✅\nComparto 50%',
@@ -40,7 +40,7 @@ export const SEED_MESSAGES: SeedMessage[] = [
     text: 'Local en alquiler Centro, 60 m2, 1 baño, Bs 4200 mensual, garantía 3 meses. Comparto 50%',
     expected: { operation: 'alquiler', type: 'local', zone: 'Centro', price: 4200, currency: 'BOB', bathrooms: 1, builtM2: 60, commissionShare: 50 },
   },
-  // PRD v2 (C3): "mil", variantes de zonas, avenidas y expensas.
+  // PRD v2 (C3): "mil", zone variants, avenues and expensas.
   {
     text: 'Alquilo dpto 2 dorm, 1 baño, por la Av. Heroínas 🔑 4 mil Bs + 300 de expensas, c/garaje, aceptan mascotas. Comparto 50%',
     expected: { operation: 'alquiler', type: 'departamento', price: 4000, currency: 'BOB', bedrooms: 2, bathrooms: 1, garage: true, pets: true, rentExpenses: 300, commissionShare: 50 },

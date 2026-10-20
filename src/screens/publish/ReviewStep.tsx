@@ -29,25 +29,25 @@ interface Props {
   draft: Draft
   setDraft: (d: Draft) => void
   detected: string[]
-  /** Campos inferidos con menos certeza (la zona por avenida). */
+  /** Fields inferred with less certainty (the zone, from the avenue). */
   suggested: string[]
-  /** Texto que originó la zona sugerida, ej. "Av. Heroinas". */
+  /** Text that produced the suggested zone, e.g. "Av. Heroinas". */
   zoneHint?: string
-  /** "Te falta" al llegar al paso (ver `pendingAtStart`). */
+  /** "Te falta" (missing) on reaching the step (see `pendingAtStart`). */
   pending: DraftField[]
   showErrors: boolean
 }
 
 /**
- * Paso 2 de Publicar (C2 del PRD v2): primero lo que falta.
- * 1) Resumen de lo detectado, con "Editar" para desplegarlo; 2) "Te falta"; 3) autorización y fotos.
+ * Step 2 of Publish (C2 in PRD v2): what is missing comes first.
+ * 1) Summary of what was detected, with "Editar" to expand it; 2) "Te falta"; 3) authorization and photos.
  */
 export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, pending, showErrors }: Props) {
   const relevant = relevantFields(d)
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft({ ...d, [key]: value })
   const manual = detected.length === 0 && suggested.length === 0
 
-  // Un campo queda en "Te falta" si faltaba al llegar o si falta ahora (p. ej., al cambiar a alquiler aparece Garantía).
+  // A field stays in "Te falta" if it was missing on arrival or is missing now (e.g., switching to rent adds Garantía).
   const missingNow = relevant.filter((f) => pending.includes(f) || d[f] == null)
   const done = relevant.filter((f) => !missingNow.includes(f))
   const missingNowSorted = [...missingNow.filter((f) => REQUIRED_FIELDS.includes(f)), ...missingNow.filter((f) => !REQUIRED_FIELDS.includes(f))]
@@ -69,7 +69,7 @@ export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, 
     error: showErrors && d[f] == null && REQUIRED_FIELDS.includes(f),
   })
 
-  /** Renderiza los campos dados en el orden de la ficha; los booleanos van juntos en "Características". */
+  /** Renders the given fields in listing order; booleans are grouped under "Características". */
   const renderFields = (fields: DraftField[]) => {
     const bools = fields.filter(isBool)
     const out: ReactNode[] = []
@@ -96,7 +96,7 @@ export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, 
     return out
   }
 
-  // Función (no componente): así los inputs no se vuelven a montar y no pierden el foco al escribir.
+  // A function (not a component): this way inputs do not remount and keep focus while typing.
   function fieldFor(f: DraftField): ReactNode {
     switch (f) {
       case 'operation':
@@ -237,7 +237,7 @@ export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, 
       {manual ? (
         <p className="mb-2 text-sm text-slate-600">Completa los datos con un toque. Los marcados con * son obligatorios.</p>
       ) : (
-        // 1. Resumen de lo detectado
+        // 1. Summary of what was detected
         <section className="mb-3 rounded-xl bg-brand-50 p-3 ring-1 ring-brand-100" aria-live="polite">
           <div className="flex items-start justify-between gap-2">
             <p className="flex items-center gap-2 text-sm text-slate-800">
@@ -257,7 +257,7 @@ export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, 
         </section>
       )}
 
-      {/* 2. Te falta */}
+      {/* 2. "Te falta" (missing) */}
       {missingNowSorted.length > 0 ? (
         <>
           <h2 className="flex items-center gap-2 pt-1 text-lg font-semibold">
@@ -273,7 +273,7 @@ export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, 
         </p>
       )}
 
-      {/* 3. Siempre visibles */}
+      {/* 3. Always visible */}
       <h2 className="flex items-center gap-2 pt-4 text-lg font-semibold">
         <ShieldCheck size={20} className="text-slate-600" aria-hidden /> Antes de publicar
       </h2>

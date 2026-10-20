@@ -32,7 +32,7 @@ export function MyListings() {
   const clearToast = useCallback(() => setToast(null), [])
 
   const mine = myListings(state.listings)
-  // C4: pendientes primero. El orden se calcula al entrar y no cambia al confirmar, para que las tarjetas no salten.
+  // C4: pending first. The order is computed on entry and does not change on confirm, so cards do not jump.
   const [order] = useState(() => pendingFirstOrder(state.listings))
   const rank = (l: Listing) => order.indexOf(l.id)
   const active = mine.filter((l) => l.status === 'active').sort((a, b) => rank(a) - rank(b) || b.createdAt.localeCompare(a.createdAt))
@@ -166,7 +166,7 @@ export function MyListings() {
   )
 }
 
-/** Hasta 3 se nombran ("Casa en Tiquipaya y Departamento en Sarco…"); más, solo el número. */
+/** Up to 3 are named ("Casa en Tiquipaya y Departamento en Sarco…"); beyond that, only the count. */
 const NAME_PENDING_UP_TO = 3
 
 function pendingTitle(pending: Listing[]): string {

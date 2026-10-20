@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 
-/** Dispara `onLongPress` tras mantener presionado `ms` milisegundos (táctil o mouse). */
+/** Fires `onLongPress` after holding down for `ms` milliseconds (touch or mouse). */
 export function useLongPress(onLongPress: () => void, ms = 800) {
   const timer = useRef<number | null>(null)
   const cancel = () => {

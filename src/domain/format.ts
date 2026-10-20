@@ -1,7 +1,7 @@
 import type { Currency, Listing } from './listing'
 import { OPERATION_PHRASE, TYPE_LABELS } from './listing'
 
-/** Agrupa miles con punto, como se escribe en Bolivia: 95000 → "95.000". */
+/** Groups thousands with a dot, as written in Bolivia: 95000 → "95.000". */
 export function groupThousands(n: number): string {
   return Math.round(n)
     .toString()
@@ -17,13 +17,13 @@ export function listingPrice(l: Pick<Listing, 'price' | 'currency' | 'operation'
   return l.operation === 'alquiler' ? `${base} / mes` : base
 }
 
-/** Corto, para la tarjeta: "+ 250 exp." o "(exp. incluidas)". `null` sin dato o si no es alquiler. */
+/** Short, for the card: "+ 250 exp." or "(exp. incluidas)". `null` with no data or if not a rental. */
 export function expensesShort(l: Pick<Listing, 'operation' | 'rentExpenses'>): string | null {
   if (l.operation !== 'alquiler' || l.rentExpenses == null) return null
   return l.rentExpenses === 0 ? '(exp. incluidas)' : `+ ${groupThousands(l.rentExpenses)} exp.`
 }
 
-/** Para textos y ficha: "Bs 3.800 / mes + Bs 250 de expensas" o "Bs 3.800 / mes (expensas incluidas)". */
+/** For texts and the listing: "Bs 3.800 / mes + Bs 250 de expensas" or "Bs 3.800 / mes (expensas incluidas)". */
 export function priceWithExpenses(l: Pick<Listing, 'price' | 'currency' | 'operation' | 'rentExpenses'>): string {
   const base = listingPrice(l)
   if (l.operation !== 'alquiler' || l.rentExpenses == null) return base

@@ -11,7 +11,7 @@ interface Props {
   cta?: string
 }
 
-/** Nombre y WhatsApp, guardados en el teléfono. Sin cuenta ni contraseña. Se pide al publicar o al compartir con un cliente. */
+/** Name and WhatsApp, saved on the phone. No account or password. Requested when publishing or sharing with a client. */
 export function ProfileSheet({
   open,
   onClose,

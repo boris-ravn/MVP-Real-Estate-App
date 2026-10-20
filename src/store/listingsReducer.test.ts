@@ -7,20 +7,20 @@ const now = new Date(2026, 9, 15, 12, 0)
 const initial: AppState = { listings: buildSeedListings(now), profile: null }
 const at = now.toISOString()
 
-describe('reducer de propiedades', () => {
-  it('ordena el listado público por confirmación más reciente', () => {
+describe('listings reducer', () => {
+  it('sorts the public listing by most recent confirmation', () => {
     const list = publicListings(initial.listings)
     for (let i = 1; i < list.length; i++) expect(list[i - 1].lastConfirmedAt >= list[i].lastConfirmedAt).toBe(true)
   })
 
-  it('una publicación nueva aparece primero', () => {
+  it('a new listing appears first', () => {
     const fresh = { ...initial.listings[0], id: 'new-1', isMine: true, lastConfirmedAt: new Date(now.getTime() + 1000).toISOString() }
     const s = reducer(initial, { type: 'publish', listing: fresh })
     expect(publicListings(s.listings)[0].id).toBe('new-1')
     expect(myListings(s.listings).map((l) => l.id)).toContain('new-1')
   })
 
-  it('"Confirmar todas" reinicia la frescura de varias y "Deshacer" las restaura (C4)', () => {
+  it('"Confirmar todas" resets freshness for several and "Deshacer" restores them (C4)', () => {
     const mine = myListings(initial.listings)
     const ids = mine.slice(0, 2).map((l) => l.id)
     const previous = mine.slice(0, 2).map((l) => ({ id: l.id, lastConfirmedAt: l.lastConfirmedAt }))
@@ -33,7 +33,7 @@ describe('reducer de propiedades', () => {
     expect(undone.listings).toEqual(initial.listings)
   })
 
-  it('Mis propiedades: las pendientes primero, con más días sin confirmar arriba (C4)', () => {
+  it('Mis propiedades: pending ones first, most days unconfirmed on top (C4)', () => {
     const order = pendingFirstOrder(initial.listings, now)
     const mine = order.map((id) => initial.listings.find((l) => l.id === id)!)
     const pendingCount = mine.filter((l) => needsConfirmation(l.lastConfirmedAt, now)).length
@@ -42,33 +42,33 @@ describe('reducer de propiedades', () => {
     for (let i = 1; i < pendingCount; i++) expect(mine[i - 1].lastConfirmedAt <= mine[i].lastConfirmedAt).toBe(true)
   })
 
-  it('"Sigue disponible" reinicia la frescura', () => {
+  it('"Sigue disponible" resets freshness', () => {
     const id = myListings(initial.listings)[0].id
     const s = reducer(initial, { type: 'confirmAvailable', id, at })
     expect(s.listings.find((l) => l.id === id)!.lastConfirmedAt).toBe(at)
   })
 
-  it('cambiar precio actualiza precio y frescura', () => {
+  it('changing the price updates price and freshness', () => {
     const id = myListings(initial.listings)[0].id
     const s = reducer(initial, { type: 'changePrice', id, price: 120000, at })
     expect(s.listings.find((l) => l.id === id)).toMatchObject({ price: 120000, lastConfirmedAt: at })
   })
 
-  it('"Marcar vendida" la saca del listado público pero sigue en mis propiedades', () => {
+  it('"Marcar vendida" removes it from the public listing but keeps it in my listings', () => {
     const id = myListings(initial.listings)[0].id
     const s = reducer(initial, { type: 'markClosed', id })
     expect(publicListings(s.listings).some((l) => l.id === id)).toBe(false)
     expect(myListings(s.listings).find((l) => l.id === id)!.status).toBe('closed')
   })
 
-  it('"Deshacer" vuelve a publicarla', () => {
+  it('"Deshacer" publishes it again', () => {
     const id = myListings(initial.listings)[0].id
     const closed = reducer(initial, { type: 'markClosed', id })
     const reopened = reducer(closed, { type: 'reopen', id })
     expect(publicListings(reopened.listings).some((l) => l.id === id)).toBe(true)
   })
 
-  it('al registrar el perfil, las propiedades propias lo muestran', () => {
+  it('after registering the profile, own listings show it', () => {
     const profile = { name: 'Ana Pérez', whatsapp: '+59171234567', memberSince: at }
     const s = reducer(initial, { type: 'setProfile', profile })
     expect(s.profile).toEqual(profile)

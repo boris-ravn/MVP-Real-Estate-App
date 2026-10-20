@@ -22,7 +22,7 @@ export function Detail() {
     window.scrollTo(0, 0)
   }, [id])
 
-  // listing_viewed una sola vez por ficha (StrictMode ejecuta los efectos dos veces en desarrollo).
+  // listing_viewed only once per listing (StrictMode runs effects twice in development).
   const viewed = useRef<string | null>(null)
   useEffect(() => {
     if (!listing || viewed.current === listing.id) return
@@ -61,7 +61,7 @@ export function Detail() {
   )
 }
 
-/** Ficha estándar: mismos bloques, en el mismo orden, para todas las propiedades. */
+/** Standard listing detail: same blocks, in the same order, for every property. */
 function ListingSheet({ listing: l }: { listing: Listing }) {
   const isRent = l.operation === 'alquiler'
   const isLand = l.type === 'terreno'

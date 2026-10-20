@@ -7,7 +7,7 @@ import { copyText } from '../lib/clipboard'
 import { currentSessionId, getEvents, summarizeEvents, type TrackedEvent } from '../store/events'
 import { useStore } from '../store/context'
 
-/** Ruta oculta para el moderador: eventos, configuración y reinicio. */
+/** Hidden route for the moderator: events, settings and reset. */
 export function Debug() {
   const { state } = useStore()
   const reset = useResetDemo()

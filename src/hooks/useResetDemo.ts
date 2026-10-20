@@ -3,7 +3,7 @@ import { resetDemo, useStore } from '../store/context'
 import { logEvent } from '../store/events'
 import { useFilters } from '../store/filtersContext'
 
-/** "Reiniciar demo" entre participantes: semilla, perfil, eventos y filtros. Pide confirmación. */
+/** "Reiniciar demo" (Reset demo) between participants: seed, profile, events and filters. Asks for confirmation. */
 export function useResetDemo() {
   const { dispatch } = useStore()
   const [, setFilters] = useFilters()
@@ -11,7 +11,7 @@ export function useResetDemo() {
     if (!window.confirm('¿Reiniciar la demo? Se restauran las propiedades de ejemplo y se borran el perfil y los eventos.')) return false
     resetDemo(dispatch)
     setFilters(EMPTY_FILTERS)
-    // Nueva sesión de prueba a partir de aquí.
+    // New test session from here on.
     logEvent('session_start', { reset: true })
     return true
   }

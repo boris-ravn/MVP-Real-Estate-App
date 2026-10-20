@@ -3,16 +3,16 @@ import { needsConfirmation } from '../domain/freshness'
 
 export interface AppState {
   listings: Listing[]
-  /** Nombre y WhatsApp del participante; se pide la primera vez que publica. */
+  /** Participant's name and WhatsApp; requested the first time they publish. */
   profile: Agent | null
 }
 
 export type Action =
   | { type: 'publish'; listing: Listing }
   | { type: 'confirmAvailable'; id: string; at: string }
-  /** "Confirmar todas" (C4). */
+  /** "Confirmar todas" (Confirm all) (C4). */
   | { type: 'confirmMany'; ids: string[]; at: string }
-  /** Deshacer "Confirmar todas": vuelve cada una a su fecha anterior. */
+  /** Undo "Confirmar todas": restores each one to its previous date. */
   | { type: 'restoreConfirmed'; previous: { id: string; lastConfirmedAt: string }[] }
   | { type: 'changePrice'; id: string; price: number; at: string }
   | { type: 'markClosed'; id: string }
@@ -37,14 +37,14 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, listings: state.listings.map((l) => (prev.has(l.id) ? { ...l, lastConfirmedAt: prev.get(l.id)! } : l)) }
     }
     case 'changePrice':
-      // Cambiar el precio también confirma que la información está al día.
+      // Changing the price also confirms the information is up to date.
       return { ...state, listings: update(state.listings, action.id, { price: action.price, lastConfirmedAt: action.at }) }
     case 'markClosed':
       return { ...state, listings: update(state.listings, action.id, { status: 'closed' }) }
     case 'reopen':
       return { ...state, listings: update(state.listings, action.id, { status: 'active' }) }
     case 'setProfile':
-      // Las propiedades propias pasan a mostrar el perfil real del participante.
+      // The participant's own listings now show their real profile.
       return {
         profile: action.profile,
         listings: state.listings.map((l) => (l.isMine ? { ...l, agent: action.profile } : l)),
@@ -54,7 +54,7 @@ export function reducer(state: AppState, action: Action): AppState {
   }
 }
 
-/** Listado público: activas, ordenadas por confirmación más reciente. */
+/** Public listing: active ones, sorted by most recent confirmation. */
 export function publicListings(listings: Listing[]): Listing[] {
   return listings
     .filter((l) => l.status === 'active')
@@ -66,8 +66,8 @@ export function myListings(listings: Listing[]): Listing[] {
 }
 
 /**
- * Orden de Mis propiedades · Activas (C4): primero las que necesitan confirmación (más días sin
- * confirmar arriba) y luego las demás, más nuevas primero. La pantalla lo calcula al entrar.
+ * Order for Mis propiedades · Activas (My listings · Active) (C4): first those needing confirmation
+ * (most days unconfirmed on top), then the rest, newest first. The screen computes it on entry.
  */
 export function pendingFirstOrder(listings: Listing[], now: Date = new Date()): string[] {
   const active = myListings(listings).filter((l) => l.status === 'active')
