@@ -1,4 +1,5 @@
 import type { Agent, Listing } from '../domain/listing'
+import { needsConfirmation } from '../domain/freshness'
 
 export interface AppState {
   listings: Listing[]
@@ -9,6 +10,10 @@ export interface AppState {
 export type Action =
   | { type: 'publish'; listing: Listing }
   | { type: 'confirmAvailable'; id: string; at: string }
+  /** "Confirmar todas" (C4). */
+  | { type: 'confirmMany'; ids: string[]; at: string }
+  /** Deshacer "Confirmar todas": vuelve cada una a su fecha anterior. */
+  | { type: 'restoreConfirmed'; previous: { id: string; lastConfirmedAt: string }[] }
   | { type: 'changePrice'; id: string; price: number; at: string }
   | { type: 'markClosed'; id: string }
   | { type: 'reopen'; id: string }
@@ -25,6 +30,12 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, listings: [action.listing, ...state.listings] }
     case 'confirmAvailable':
       return { ...state, listings: update(state.listings, action.id, { lastConfirmedAt: action.at }) }
+    case 'confirmMany':
+      return { ...state, listings: state.listings.map((l) => (action.ids.includes(l.id) ? { ...l, lastConfirmedAt: action.at } : l)) }
+    case 'restoreConfirmed': {
+      const prev = new Map(action.previous.map((p) => [p.id, p.lastConfirmedAt]))
+      return { ...state, listings: state.listings.map((l) => (prev.has(l.id) ? { ...l, lastConfirmedAt: prev.get(l.id)! } : l)) }
+    }
     case 'changePrice':
       // Cambiar el precio también confirma que la información está al día.
       return { ...state, listings: update(state.listings, action.id, { price: action.price, lastConfirmedAt: action.at }) }
@@ -52,4 +63,15 @@ export function publicListings(listings: Listing[]): Listing[] {
 
 export function myListings(listings: Listing[]): Listing[] {
   return listings.filter((l) => l.isMine)
+}
+
+/**
+ * Orden de Mis propiedades · Activas (C4): primero las que necesitan confirmación (más días sin
+ * confirmar arriba) y luego las demás, más nuevas primero. La pantalla lo calcula al entrar.
+ */
+export function pendingFirstOrder(listings: Listing[], now: Date = new Date()): string[] {
+  const active = myListings(listings).filter((l) => l.status === 'active')
+  const pending = active.filter((l) => needsConfirmation(l.lastConfirmedAt, now)).sort((a, b) => a.lastConfirmedAt.localeCompare(b.lastConfirmedAt))
+  const rest = active.filter((l) => !pending.includes(l)).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  return [...pending, ...rest].map((l) => l.id)
 }

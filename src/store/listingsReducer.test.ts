@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { needsConfirmation } from '../domain/freshness'
 import { buildSeedListings } from '../seed/listings'
-import { myListings, publicListings, reducer, type AppState } from './listingsReducer'
+import { myListings, pendingFirstOrder, publicListings, reducer, type AppState } from './listingsReducer'
 
 const now = new Date(2026, 9, 15, 12, 0)
 const initial: AppState = { listings: buildSeedListings(now), profile: null }
@@ -17,6 +18,28 @@ describe('reducer de propiedades', () => {
     const s = reducer(initial, { type: 'publish', listing: fresh })
     expect(publicListings(s.listings)[0].id).toBe('new-1')
     expect(myListings(s.listings).map((l) => l.id)).toContain('new-1')
+  })
+
+  it('"Confirmar todas" reinicia la frescura de varias y "Deshacer" las restaura (C4)', () => {
+    const mine = myListings(initial.listings)
+    const ids = mine.slice(0, 2).map((l) => l.id)
+    const previous = mine.slice(0, 2).map((l) => ({ id: l.id, lastConfirmedAt: l.lastConfirmedAt }))
+    const confirmed = reducer(initial, { type: 'confirmMany', ids, at })
+    for (const id of ids) expect(confirmed.listings.find((l) => l.id === id)!.lastConfirmedAt).toBe(at)
+    const untouched = initial.listings.find((l) => !ids.includes(l.id))!
+    expect(confirmed.listings.find((l) => l.id === untouched.id)).toEqual(untouched)
+
+    const undone = reducer(confirmed, { type: 'restoreConfirmed', previous })
+    expect(undone.listings).toEqual(initial.listings)
+  })
+
+  it('Mis propiedades: las pendientes primero, con más días sin confirmar arriba (C4)', () => {
+    const order = pendingFirstOrder(initial.listings, now)
+    const mine = order.map((id) => initial.listings.find((l) => l.id === id)!)
+    const pendingCount = mine.filter((l) => needsConfirmation(l.lastConfirmedAt, now)).length
+    expect(pendingCount).toBeGreaterThan(0)
+    mine.forEach((l, i) => expect(needsConfirmation(l.lastConfirmedAt, now), l.id).toBe(i < pendingCount))
+    for (let i = 1; i < pendingCount; i++) expect(mine[i - 1].lastConfirmedAt <= mine[i].lastConfirmedAt).toBe(true)
   })
 
   it('"Sigue disponible" reinicia la frescura', () => {

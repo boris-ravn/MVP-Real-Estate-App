@@ -8,10 +8,10 @@ import { ShareSheet } from '../components/ShareSheet'
 import { Toast, type ToastData } from '../components/Toast'
 import { daysSince, needsConfirmation } from '../domain/freshness'
 import { formatPrice, listingPrice, listingTitle } from '../domain/format'
-import type { Listing, Operation } from '../domain/listing'
+import { TYPE_LABELS, type Listing, type Operation } from '../domain/listing'
 import { useStore } from '../store/context'
 import { logEvent } from '../store/events'
-import { myListings } from '../store/listingsReducer'
+import { myListings, pendingFirstOrder } from '../store/listingsReducer'
 
 const CLOSE_LABEL: Record<Operation, { action: string; done: string }> = {
   venta: { action: 'Marcar vendida', done: 'Vendida' },
@@ -32,8 +32,10 @@ export function MyListings() {
   const clearToast = useCallback(() => setToast(null), [])
 
   const mine = myListings(state.listings)
-  // Orden estable (más nuevas primero) para que las tarjetas no salten al confirmar.
-  const active = mine.filter((l) => l.status === 'active').sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  // C4: pendientes primero. El orden se calcula al entrar y no cambia al confirmar, para que las tarjetas no salten.
+  const [order] = useState(() => pendingFirstOrder(state.listings))
+  const rank = (l: Listing) => order.indexOf(l.id)
+  const active = mine.filter((l) => l.status === 'active').sort((a, b) => rank(a) - rank(b) || b.createdAt.localeCompare(a.createdAt))
   const closed = mine.filter((l) => l.status === 'closed')
   const pending = active.filter((l) => needsConfirmation(l.lastConfirmedAt))
   const list = tab === 'active' ? active : closed
@@ -42,8 +44,18 @@ export function MyListings() {
 
   const confirm = (l: Listing) => {
     dispatch({ type: 'confirmAvailable', id: l.id, at: nowIso() })
-    logEvent('confirm_available', { listingId: l.id, daysSinceConfirmed: daysSince(l.lastConfirmedAt) })
+    logEvent('confirm_available', { listingId: l.id, daysSinceConfirmed: daysSince(l.lastConfirmedAt), bulk: false })
     show('Listo: confirmada hoy.')
+  }
+
+  const confirmAll = () => {
+    const previous = pending.map((l) => ({ id: l.id, lastConfirmedAt: l.lastConfirmedAt }))
+    dispatch({ type: 'confirmMany', ids: pending.map((l) => l.id), at: nowIso() })
+    logEvent('confirm_available', { bulk: true, count: pending.length, listingIds: pending.map((l) => l.id) })
+    show(pending.length === 1 ? '1 propiedad confirmada hoy.' : `${pending.length} propiedades confirmadas hoy.`, {
+      label: 'Deshacer',
+      onClick: () => dispatch({ type: 'restoreConfirmed', previous }),
+    })
   }
 
   const close = (l: Listing) => {
@@ -97,10 +109,15 @@ export function MyListings() {
         <div className="m-4 mb-0 flex gap-3 rounded-xl bg-amber-50 p-3 ring-1 ring-amber-200" role="status">
           <BellRing size={22} className="mt-0.5 shrink-0 text-amber-700" aria-hidden />
           <div>
-            <p className="font-semibold text-amber-950">
-              {pending.length === 1 ? '1 propiedad necesita confirmación.' : `${pending.length} propiedades necesitan confirmación.`}
-            </p>
+            <p className="font-semibold text-amber-950">{pendingTitle(pending)}</p>
             <p className="text-sm text-amber-900">¿Siguen disponibles? Confirmarlo hace que te consulten menos por chat.</p>
+            <button
+              type="button"
+              onClick={confirmAll}
+              className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-600 px-4 text-sm font-semibold text-white active:bg-amber-700"
+            >
+              <RefreshCw size={16} aria-hidden /> Confirmar {pending.length === 1 ? 'ahora' : `todas (${pending.length})`}
+            </button>
           </div>
         </div>
       )}
@@ -147,6 +164,16 @@ export function MyListings() {
       <Toast key={toast?.id} toast={toast} onDone={clearToast} />
     </div>
   )
+}
+
+/** Hasta 3 se nombran ("Casa en Tiquipaya y Departamento en Sarco…"); más, solo el número. */
+const NAME_PENDING_UP_TO = 3
+
+function pendingTitle(pending: Listing[]): string {
+  if (pending.length > NAME_PENDING_UP_TO) return `${pending.length} propiedades necesitan confirmación.`
+  const names = pending.map((l) => `${TYPE_LABELS[l.type]} en ${l.zone}`)
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`
+  return `${list} ${pending.length === 1 ? 'necesita' : 'necesitan'} confirmación.`
 }
 
 function MyListingCard({
