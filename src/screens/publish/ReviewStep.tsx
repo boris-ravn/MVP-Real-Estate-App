@@ -1,9 +1,24 @@
-import { AlertCircle, Bath, BedDouble, Car, Check, FileCheck, Landmark, MapPin, Package, PawPrint, ShieldCheck, Sparkles, Zap } from 'lucide-react'
+import { AlertCircle, Ban, Bath, BedDouble, Car, Check, FileCheck, Landmark, ListPlus, MapPin, Package, PawPrint, ShieldCheck, Sparkles, Zap } from 'lucide-react'
 import { Fragment, useState, type ReactNode } from 'react'
 import { Chip } from '../../components/Chip'
 import { PhotoPlaceholder } from '../../components/PhotoPlaceholder'
-import { draftCurrency, draftSummary, growPending, relevantFields, REQUIRED_FIELDS, type Draft, type DraftField } from '../../domain/draft'
-import { OPERATION_LABELS, PHOTO_IDS, TYPE_LABELS, ZONES, type Operation, type PropertyType, type Zone } from '../../domain/listing'
+import {
+  addBack,
+  askedFields,
+  draftCurrency,
+  draftSummary,
+  FIELD_LABELS,
+  fieldsIn,
+  growPending,
+  keepFilledFields,
+  markNotApplicable,
+  REQUIRED_FIELDS,
+  sectionOf,
+  type Draft,
+  type DraftField,
+} from '../../domain/draft'
+import { fieldLevel } from '../../domain/fields'
+import { OPERATION_LABELS, PHOTO_IDS, TYPE_LABELS, ZONES, type DetailField, type Operation, type PropertyType, type Zone } from '../../domain/listing'
 import { logEvent } from '../../store/events'
 
 const BOOL_ICONS: Partial<Record<DraftField, ReactNode>> = {
@@ -15,15 +30,8 @@ const BOOL_ICONS: Partial<Record<DraftField, ReactNode>> = {
   utilities: <Zap size={16} aria-hidden />,
 }
 const BOOL_FIELDS = ['garage', 'pets', 'storage', 'bankCredit', 'docsOk', 'utilities'] as const
-const SHORT_LABELS: Record<(typeof BOOL_FIELDS)[number], string> = {
-  garage: 'Garaje',
-  pets: 'Mascotas',
-  storage: 'Baulera',
-  bankCredit: 'Crédito bancario',
-  docsOk: 'Papeles al día',
-  utilities: 'Servicios completos',
-}
 const isBool = (f: DraftField): f is (typeof BOOL_FIELDS)[number] => (BOOL_FIELDS as readonly string[]).includes(f)
+const isDetail = (f: DraftField): f is DetailField => !REQUIRED_FIELDS.includes(f)
 
 interface Props {
   draft: Draft
@@ -40,25 +48,29 @@ interface Props {
 }
 
 /**
- * Publish step 2, Review (C2 in PRD v2): what is missing comes first.
- * 1) Summary of what was detected, with "Editar" to expand it; 2) "Te falta"; 3) authorization and photos.
+ * Publish step 2, Review (C2 in PRD v2, D1 in PRD v3): what is missing comes first.
+ * 1) Summary of what was detected, with "Editar" to expand it; 2) "Te falta"; 3) "Más datos (opcional)";
+ * 4) "No aplica", with "Agregar"; 5) authorization and photos.
  */
 export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, pending, setPending, showErrors }: Props) {
-  const relevant = relevantFields(d)
-  // A field never moves between "Te falta" and the summary while the agent edits it: only newly relevant fields are added.
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
-    const next = { ...d, [key]: value }
-    setPending((p) => growPending(p, d, next))
-    setDraft(next)
+  const asked = askedFields(d)
+  // A field never moves between "Te falta" and the summary while the agent edits it: only newly asked fields are added.
+  const update = (next: Draft) => {
+    const kept = keepFilledFields(next)
+    setPending((p) => growPending(p, d, kept))
+    setDraft(kept)
   }
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => update({ ...d, [key]: value })
   const manual = detected.length === 0 && suggested.length === 0
 
-  // "Te falta": fields missing on arrival plus those that became relevant later (e.g., switching to rent adds Garantía).
-  const missingNow = relevant.filter((f) => pending.includes(f))
-  const done = relevant.filter((f) => !missingNow.includes(f))
+  // "Te falta": fields missing on arrival plus those asked later (e.g., switching to rent adds Garantía).
+  const missingNow = asked.filter((f) => pending.includes(f))
+  const done = asked.filter((f) => !missingNow.includes(f))
   const missingNowSorted = [...missingNow.filter((f) => REQUIRED_FIELDS.includes(f)), ...missingNow.filter((f) => !REQUIRED_FIELDS.includes(f))]
-  const detectedCount = relevant.filter((f) => detected.includes(f)).length
-  const stillEmpty = relevant.filter((f) => d[f] == null).length
+  const detectedCount = asked.filter((f) => detected.includes(f)).length
+  const stillEmpty = asked.filter((f) => d[f] == null).length
+  const optional = fieldsIn(d, 'optional')
+  const notApplicable = fieldsIn(d, 'notApplicable').filter(isDetail)
 
   const [editingState, setEditing] = useState(false)
   // If the agent cleared a required field inside "Editar" and tries to publish, open it so the error is visible.
@@ -68,44 +80,44 @@ export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, 
     setEditing(!editing)
   }
 
-  const [otherCommission, setOtherCommission] = useState(d.commissionShare != null && ![30, 40, 50].includes(d.commissionShare))
-
-  const status = (f: DraftField) => ({
-    detected: detected.includes(f),
-    suggested: suggested.includes(f) && d[f] != null,
-    missing: d[f] == null,
-    error: showErrors && d[f] == null && REQUIRED_FIELDS.includes(f),
-  })
-
-  /** Renders the given fields in listing order; booleans are grouped under "Características". */
-  const renderFields = (fields: DraftField[]) => {
-    const bools = fields.filter(isBool)
-    const out: ReactNode[] = []
-    for (const f of fields) {
-      if (isBool(f)) {
-        if (f !== bools[0]) continue
-        out.push(
-          <Field key="bools" label="Características" hint="Toca para marcar lo que tiene. Si algo no tiene, déjalo sin marcar." missing={bools.some((b) => d[b] == null)}>
-            <div className="flex flex-wrap gap-2">
-              {bools.map((b) => (
-                <Chip key={b} active={d[b] === true} onClick={() => set(b, d[b] === true ? false : true)} dashed={d[b] == null}>
-                  {d[b] === true ? <Check size={16} aria-hidden /> : BOOL_ICONS[b]}
-                  {SHORT_LABELS[b]}
-                  {detected.includes(b) && <span className="sr-only">(detectado)</span>}
-                </Chip>
-              ))}
-            </div>
-          </Field>,
-        )
-        continue
-      }
-      out.push(<Fragment key={f}>{fieldFor(f)}</Fragment>)
-    }
-    return out
+  const [showOptional, setShowOptional] = useState(false)
+  const [showNotApplicable, setShowNotApplicable] = useState(false)
+  const markNA = (f: DetailField) => {
+    logEvent('field_marked_na', { field: f, level: fieldLevel(f, d) })
+    update(markNotApplicable(d, f))
+  }
+  const addFieldBack = (f: DetailField) => {
+    logEvent('field_added_back', { field: f })
+    const next = addBack(d, f)
+    // Open "Más datos" so the agent sees where the field went.
+    if (sectionOf(f, next) === 'optional') setShowOptional(true)
+    update(next)
   }
 
+  const [otherCommission, setOtherCommission] = useState(d.commissionShare != null && ![30, 40, 50].includes(d.commissionShare))
+
+  // Optional fields are never marked as missing. Required ones can't be marked "No aplica".
+  const statusOf = (f: DraftField, optional: boolean) => ({
+    detected: detected.includes(f),
+    suggested: suggested.includes(f) && d[f] != null,
+    missing: d[f] == null && !optional,
+    error: showErrors && d[f] == null && REQUIRED_FIELDS.includes(f),
+    onNotApplicable: isDetail(f) ? () => markNA(f) : undefined,
+  })
+
+  /** Renders the given fields in listing order. */
+  const renderFields = (fields: DraftField[], optional = false) => fields.map((f) => <Fragment key={f}>{fieldFor(f, optional)}</Fragment>)
+
   // A function (not a component): this way inputs do not remount and keep focus while typing.
-  function fieldFor(f: DraftField): ReactNode {
+  function fieldFor(f: DraftField, optional: boolean): ReactNode {
+    const status = (field: DraftField) => statusOf(field, optional)
+    if (isBool(f)) {
+      return (
+        <Field label={FIELD_LABELS[f]} icon={BOOL_ICONS[f]} {...status(f)}>
+          <Choice options={{ si: 'Sí', no: 'No' }} value={d[f] == null ? null : d[f] ? 'si' : 'no'} onChange={(v) => set(f, v === 'si')} />
+        </Field>
+      )
+    }
     switch (f) {
       case 'operation':
         return (
@@ -257,7 +269,7 @@ export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, 
             <p className="flex items-center gap-2 text-sm text-slate-800">
               <Sparkles size={18} className="shrink-0 text-brand-600" aria-hidden />
               <span>
-                Detectamos <b>{detectedCount} de {relevant.length}</b> datos.
+                Detectamos <b>{detectedCount} de {asked.length}</b> datos.
               </span>
             </p>
             {done.length > 0 && (
@@ -287,7 +299,33 @@ export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, 
         </p>
       )}
 
-      {/* 3. Always visible */}
+      {/* 3. "Más datos (opcional)": never counted as missing */}
+      {optional.length > 0 && (
+        <Fold icon={<ListPlus size={20} aria-hidden />} title={`Más datos (opcional) · ${optional.length}`} open={showOptional} onToggle={() => setShowOptional(!showOptional)}>
+          <p className="text-sm text-slate-600">No hace falta llenarlos para publicar.</p>
+          {renderFields(optional, true)}
+        </Fold>
+      )}
+
+      {/* 4. "No aplica": fields that don't apply to this listing, with "Agregar" */}
+      {notApplicable.length > 0 && (
+        <Fold icon={<Ban size={20} aria-hidden />} title={`No aplica · ${notApplicable.length}`} open={showNotApplicable} onToggle={() => setShowNotApplicable(!showNotApplicable)}>
+          <p className="text-sm text-slate-600">No se piden para esta propiedad. Si la tuya sí lo tiene, agrégalo.</p>
+          <ul>
+            {notApplicable.map((f) => (
+              <li key={f} className="flex min-h-12 items-center justify-between gap-2 border-b border-slate-100 py-1 text-slate-600">
+                <span className="flex items-center gap-1.5">
+                  {BOOL_ICONS[f]}
+                  {FIELD_LABELS[f]}
+                </span>
+                <Chip onClick={() => addFieldBack(f)}>Agregar</Chip>
+              </li>
+            ))}
+          </ul>
+        </Fold>
+      )}
+
+      {/* 5. Always visible */}
       <h2 className="flex items-center gap-2 pt-4 text-lg font-semibold">
         <ShieldCheck size={20} className="text-slate-600" aria-hidden /> Antes de publicar
       </h2>
@@ -319,6 +357,21 @@ export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, 
   )
 }
 
+function Fold({ icon, title, open, onToggle, children }: { icon: ReactNode; title: string; open: boolean; onToggle: () => void; children: ReactNode }) {
+  return (
+    <section className="mt-3 border-t border-slate-200">
+      <button type="button" onClick={onToggle} aria-expanded={open} className="flex min-h-12 w-full items-center justify-between gap-2 py-2 text-left">
+        <span className="flex items-center gap-2 text-lg font-semibold">
+          <span className="text-slate-600">{icon}</span>
+          {title}
+        </span>
+        <span className="text-sm font-semibold text-brand-700 underline">{open ? 'Ocultar' : 'Ver'}</span>
+      </button>
+      {open && <div className="pb-2">{children}</div>}
+    </section>
+  )
+}
+
 function Field({
   label,
   icon,
@@ -327,6 +380,7 @@ function Field({
   suggested,
   missing,
   error,
+  onNotApplicable,
   children,
 }: {
   label: string
@@ -336,6 +390,8 @@ function Field({
   suggested?: boolean
   missing?: boolean
   error?: boolean
+  /** Shows the "No aplica" button (recommended and optional fields only). */
+  onNotApplicable?: () => void
   children: ReactNode
 }) {
   return (
@@ -345,20 +401,33 @@ function Field({
           {icon}
           {label}
         </h3>
-        {suggested ? (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-800">
-            <MapPin size={14} aria-hidden /> Sugerida
-          </span>
-        ) : detected && !missing ? (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
-            <Check size={14} aria-hidden /> detectado
-          </span>
-        ) : null}
-        {missing && (
-          <span className={`inline-flex items-center gap-1 text-xs font-medium ${error ? 'text-red-700' : 'text-amber-800'}`}>
-            <AlertCircle size={14} aria-hidden /> {error ? 'Obligatorio' : 'Falta'}
-          </span>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {suggested ? (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-800">
+              <MapPin size={14} aria-hidden /> Sugerida
+            </span>
+          ) : detected && !missing ? (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+              <Check size={14} aria-hidden /> detectado
+            </span>
+          ) : null}
+          {/* Fields with "No aplica" are already marked as missing by the section and the background. */}
+          {missing && !onNotApplicable && (
+            <span className={`inline-flex items-center gap-1 text-xs font-medium ${error ? 'text-red-700' : 'text-amber-800'}`}>
+              <AlertCircle size={14} aria-hidden /> {error ? 'Obligatorio' : 'Falta'}
+            </span>
+          )}
+          {onNotApplicable && (
+            <button
+              type="button"
+              onClick={onNotApplicable}
+              aria-label={`${label}: no aplica`}
+              className="min-h-9 rounded-lg border border-dashed border-slate-400 bg-white px-2.5 text-xs font-medium text-slate-600 active:bg-slate-100"
+            >
+              No aplica
+            </button>
+          )}
+        </div>
       </div>
       {hint && <p className="mb-2 text-xs text-slate-500">{hint}</p>}
       {children}

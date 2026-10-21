@@ -1,7 +1,7 @@
 import { ArrowLeft, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { draftFromParsed, draftToListing, EMPTY_DRAFT, missingRequired, pendingAtStart, relevantFields, type Draft, type DraftField } from '../domain/draft'
+import { askedFields, draftFromParsed, draftToListing, EMPTY_DRAFT, missingRequired, pendingAtStart, type Draft, type DraftField } from '../domain/draft'
 import type { Agent, Listing } from '../domain/listing'
 import { parseListing } from '../parser/parseListing'
 import { useStore } from '../store/context'
@@ -85,7 +85,7 @@ export function Publish() {
     }
     const parsed: ReturnType<typeof parseListing> = manual ? { detected: [] } : parseListing(text)
     const next = draftFromParsed(parsed, manual ? '' : text)
-    const fields = relevantFields(next)
+    const fields = askedFields(next)
     logEvent('publish_parsed', {
       manual,
       detectedCount: fields.filter((f) => parsed.detected.includes(f)).length,
@@ -119,8 +119,9 @@ export function Publish() {
     dispatch({ type: 'publish', listing })
     logEvent('publish_completed', {
       listingId: listing.id,
-      detectedCount: relevantFields(draft).filter((f) => detected.includes(f)).length,
+      detectedCount: askedFields(draft).filter((f) => detected.includes(f)).length,
       missingAtStart,
+      notApplicable: listing.notApplicable,
     })
     setPublished(listing)
     setText('')

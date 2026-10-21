@@ -1,5 +1,6 @@
 import type { ParsedListing } from '../parser/parseListing'
-import type { Agent, Currency, Listing, Operation, PhotoId, PropertyType, Zone } from './listing'
+import type { Agent, Currency, DetailField, Listing, Operation, PhotoId, PropertyType, Zone } from './listing'
+import { DETAIL_FIELDS, fieldLevel } from './fields'
 import { formatPrice } from './format'
 import { currencyFor, OPERATION_LABELS, TYPE_LABELS } from './listing'
 
@@ -28,9 +29,13 @@ export interface Draft {
   ownerAuthorized: boolean
   photos: PhotoId[]
   description: string
+  /** Fields the agent marked "No aplica" (PRD v3 D1). Their value is kept in case the agent adds them back. */
+  notApplicable: DetailField[]
+  /** Fields that don't apply by default but the agent added back or that came with a value: they go under "Más datos". */
+  added: DetailField[]
 }
 
-export type DraftField = Exclude<keyof Draft, 'currency' | 'ownerAuthorized' | 'photos' | 'description'>
+export type DraftField = Exclude<keyof Draft, 'currency' | 'ownerAuthorized' | 'photos' | 'description' | 'notApplicable' | 'added'>
 
 export const FIELD_LABELS: Record<DraftField, string> = {
   operation: 'Operación',
@@ -55,7 +60,7 @@ export const FIELD_LABELS: Record<DraftField, string> = {
 export const REQUIRED_FIELDS: DraftField[] = ['operation', 'type', 'zone', 'price']
 
 export function draftFromParsed(p: ParsedListing, text: string): Draft {
-  return {
+  return keepFilledFields({
     operation: p.operation ?? null,
     type: p.type ?? null,
     zone: p.zone ?? null,
@@ -78,36 +83,57 @@ export function draftFromParsed(p: ParsedListing, text: string): Draft {
     ownerAuthorized: false,
     photos: ['fachada'],
     description: text.trim(),
-  }
+    notApplicable: [],
+    added: [],
+  })
 }
 
 export const EMPTY_DRAFT: Draft = draftFromParsed({ detected: [] }, '')
 
-/** Fields that make sense for the type and operation (a plot of land has no bathrooms). */
-export function relevantFields(d: Pick<Draft, 'type' | 'operation'>): DraftField[] {
-  const land = d.type === 'terreno'
-  const local = d.type === 'local'
-  const rent = d.operation === 'alquiler'
-  const fields: (DraftField | false)[] = [
-    'operation',
-    'type',
-    'zone',
-    'price',
-    !land && !local && 'bedrooms',
-    !land && 'bathrooms',
-    !land && 'builtM2',
-    (land || d.type === 'casa') && 'landM2',
-    !land && 'garage',
-    !land && !local && 'pets',
-    !land && 'storage',
-    !rent && 'bankCredit',
-    'docsOk',
-    'utilities',
-    rent && 'rentGuarantee',
-    rent && 'rentExpenses',
-    'commissionShare',
-  ]
-  return fields.filter((f): f is DraftField => f !== false)
+/**
+ * Where a field goes in Revisar (PRD v3 D1): `asked` = required and recommended (summary or "Te falta"),
+ * `optional` = "Más datos", `notApplicable` = "No aplica". `null` = it never applies, so it isn't shown anywhere.
+ */
+export type ReviewSection = 'asked' | 'optional' | 'notApplicable'
+
+const isDetail = (f: DraftField): f is DetailField => !REQUIRED_FIELDS.includes(f)
+const ALL_FIELDS: DraftField[] = [...REQUIRED_FIELDS, ...DETAIL_FIELDS]
+
+/** The type and operation set the default; what the agent marked or added back wins. */
+export function sectionOf(f: DraftField, d: Draft): ReviewSection | null {
+  if (!isDetail(f)) return 'asked'
+  const level = fieldLevel(f, d)
+  if (!level) return null
+  if (d.notApplicable.includes(f)) return 'notApplicable'
+  if (level === 'recommended') return 'asked'
+  if (level === 'optional' || d.added.includes(f)) return 'optional'
+  return 'notApplicable'
+}
+
+/** Fields of a section, in listing order. */
+export function fieldsIn(d: Draft, section: ReviewSection): DraftField[] {
+  return ALL_FIELDS.filter((f) => sectionOf(f, d) === section)
+}
+
+/** Required and recommended fields: the ones counted in "X de Y" and asked in "Te falta". */
+export function askedFields(d: Draft): DraftField[] {
+  return fieldsIn(d, 'asked')
+}
+
+/** A value is never hidden under "No aplica": e.g. "con baulera" on a house for sale goes to "Más datos" with its value. */
+export function keepFilledFields(d: Draft): Draft {
+  const hidden = DETAIL_FIELDS.filter((f) => d[f] != null && !d.notApplicable.includes(f) && sectionOf(f, d) === 'notApplicable')
+  return hidden.length ? { ...d, added: [...d.added, ...hidden] } : d
+}
+
+export function markNotApplicable(d: Draft, f: DetailField): Draft {
+  return { ...d, notApplicable: [...d.notApplicable, f], added: d.added.filter((x) => x !== f) }
+}
+
+/** "Agregar": back to "Te falta" if recommended, otherwise to "Más datos". */
+export function addBack(d: Draft, f: DetailField): Draft {
+  const next = { ...d, notApplicable: d.notApplicable.filter((x) => x !== f) }
+  return fieldLevel(f, d) === 'notApplicable' ? { ...next, added: [...next.added, f] } : next
 }
 
 /**
@@ -115,17 +141,18 @@ export function relevantFields(d: Pick<Draft, 'type' | 'operation'>): DraftField
  * Computed only once, so a field doesn't jump to the summary while the agent is filling it in.
  */
 export function pendingAtStart(d: Draft, suggested: string[] = []): DraftField[] {
-  return relevantFields(d).filter((f) => d[f] == null || suggested.includes(f))
+  return askedFields(d).filter((f) => d[f] == null || suggested.includes(f))
 }
 
 /**
- * Adds the fields that a change made relevant (e.g., switching to rent adds Garantía and
- * Expensas), so they show up in "Te falta" and stay there once filled in. A field that was
- * already relevant never moves, even if the agent clears it to type a new value.
+ * Adds the fields that a change made asked (e.g., switching to rent adds Garantía and
+ * Expensas, or "Agregar" on a recommended field), so they show up in "Te falta" and stay
+ * there once filled in. A field that was already asked never moves, even if the agent
+ * clears it to type a new value.
  */
 export function growPending(pending: DraftField[], prev: Draft, next: Draft): DraftField[] {
-  const before = relevantFields(prev)
-  const added = relevantFields(next).filter((f) => !before.includes(f) && next[f] == null && !pending.includes(f))
+  const before = askedFields(prev)
+  const added = askedFields(next).filter((f) => !before.includes(f) && next[f] == null && !pending.includes(f))
   return added.length ? [...pending, ...added] : pending
 }
 
@@ -170,8 +197,8 @@ export function missingRequired(d: Draft): DraftField[] {
 
 export function draftToListing(d: Draft, agent: Agent, now: Date = new Date()): Listing {
   if (missingRequired(d).length) throw new Error('Missing required fields')
-  const relevant = new Set(relevantFields(d))
-  const keep = <K extends DraftField>(k: K): Draft[K] | null => (relevant.has(k) ? d[k] : null)
+  // Fields under "No aplica", or that never apply, are saved without a value.
+  const keep = <K extends DetailField>(k: K): Draft[K] | null => (sectionOf(k, d) === 'asked' || sectionOf(k, d) === 'optional' ? d[k] : null)
   const iso = now.toISOString()
   return {
     id: `mine-${now.getTime()}`,
@@ -188,11 +215,12 @@ export function draftToListing(d: Draft, agent: Agent, now: Date = new Date()): 
     pets: keep('pets'),
     storage: keep('storage'),
     bankCredit: keep('bankCredit'),
-    docsOk: d.docsOk,
-    utilities: d.utilities,
+    docsOk: keep('docsOk'),
+    utilities: keep('utilities'),
     rentGuarantee: keep('rentGuarantee'),
     rentExpenses: keep('rentExpenses'),
-    commissionShare: d.commissionShare,
+    commissionShare: keep('commissionShare'),
+    notApplicable: DETAIL_FIELDS.filter((f) => sectionOf(f, d) === 'notApplicable'),
     ownerAuthorized: d.ownerAuthorized,
     photos: d.photos.length ? d.photos : ['fachada'],
     description: d.description,

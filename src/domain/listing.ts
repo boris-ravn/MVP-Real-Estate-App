@@ -35,6 +35,22 @@ export interface Agent {
   memberSince: string
 }
 
+/** Listing details whose relevance depends on the type and operation (see `fieldLevel`). */
+export type DetailField =
+  | 'bedrooms'
+  | 'bathrooms'
+  | 'builtM2'
+  | 'landM2'
+  | 'garage'
+  | 'pets'
+  | 'storage'
+  | 'bankCredit'
+  | 'docsOk'
+  | 'utilities'
+  | 'rentGuarantee'
+  | 'rentExpenses'
+  | 'commissionShare'
+
 /**
  * Standard listing for a property. `null` means "no data": the listing shows it
  * explicitly so it's clear what's missing.
@@ -62,6 +78,8 @@ export interface Listing {
   rentExpenses?: number | null
   /** % of the commission that is shared, e.g. 50. */
   commissionShare: number | null
+  /** Fields that don't apply to this property (PRD v3 D1): the listing shows "No aplica" instead of "Sin dato". Missing in older data = none. */
+  notApplicable?: DetailField[]
   ownerAuthorized: boolean
   photos: PhotoId[]
   description: string

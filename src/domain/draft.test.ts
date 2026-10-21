@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseListing } from '../parser/parseListing'
 import { SEED_MESSAGES } from '../seed/messages'
-import { draftCurrency, draftFromParsed, draftSummary, draftToListing, EMPTY_DRAFT, growPending, missingRequired, pendingAtStart, relevantFields } from './draft'
+import { addBack, askedFields, draftCurrency, draftFromParsed, draftSummary, draftToListing, EMPTY_DRAFT, fieldsIn, growPending, keepFilledFields, markNotApplicable, missingRequired, pendingAtStart, type Draft } from './draft'
 
 const agent = { name: 'Ana Pérez', whatsapp: '+59171234567', memberSince: '2026-10-15T12:00:00.000Z' }
 const now = new Date(2026, 9, 15, 12)
@@ -30,13 +30,14 @@ describe('publish draft', () => {
     const text = 'Alquilo depto en Cala Cala, 2 dorm, Bs 3.800, expensas Bs 250'
     const draft = draftFromParsed(parseListing(text), text)
     expect(draft.rentExpenses).toBe(250)
-    expect(relevantFields(draft)).toContain('rentExpenses')
+    expect(askedFields(draft)).toContain('rentExpenses')
     expect(draftToListing(draft, agent, now).rentExpenses).toBe(250)
   })
 
   it('HOA fees do not apply outside rentals', () => {
     const draft = { ...EMPTY_DRAFT, operation: 'venta' as const, type: 'departamento' as const, zone: 'Sarco' as const, price: 90000, rentExpenses: 300 }
-    expect(relevantFields(draft)).not.toContain('rentExpenses')
+    expect(fieldsIn(draft, 'asked')).not.toContain('rentExpenses')
+    expect(fieldsIn(draft, 'optional')).not.toContain('rentExpenses')
     expect(draftToListing(draft, agent, now).rentExpenses).toBeNull()
   })
 
@@ -103,16 +104,87 @@ describe('publish draft', () => {
     expect(() => draftToListing(EMPTY_DRAFT, agent, now)).toThrow()
   })
 
-  it('relevant fields depend on type and operation', () => {
-    const land = relevantFields({ type: 'terreno', operation: 'venta' })
+  it('asked fields depend on type and operation', () => {
+    const land = askedFields({ ...EMPTY_DRAFT, type: 'terreno', operation: 'venta' })
     expect(land).not.toContain('bedrooms')
     expect(land).toContain('landM2')
-    expect(relevantFields({ type: 'departamento', operation: 'alquiler' })).toContain('rentGuarantee')
-    expect(relevantFields({ type: 'departamento', operation: 'alquiler' })).not.toContain('bankCredit')
+    expect(askedFields({ ...EMPTY_DRAFT, type: 'departamento', operation: 'alquiler' })).toContain('rentGuarantee')
+    expect(askedFields({ ...EMPTY_DRAFT, type: 'departamento', operation: 'alquiler' })).not.toContain('bankCredit')
   })
 
   it('drops data that does not apply to the final type', () => {
     const draft = { ...EMPTY_DRAFT, operation: 'venta' as const, type: 'terreno' as const, zone: 'Sacaba' as const, price: 50000, bedrooms: 3 }
     expect(draftToListing(draft, agent, now).bedrooms).toBeNull()
+  })
+
+  describe('sections in Revisar (PRD v3 D1)', () => {
+    const houseSale: Draft = { ...EMPTY_DRAFT, operation: 'venta', type: 'casa', zone: 'Tiquipaya', price: 128000 }
+
+    it('a house for sale does not ask for pets or storage: both are under "No aplica"', () => {
+      expect(askedFields(houseSale)).not.toContain('pets')
+      expect(fieldsIn(houseSale, 'notApplicable')).toEqual(['pets', 'storage'])
+      expect(fieldsIn(houseSale, 'optional')).toEqual(['utilities'])
+    })
+
+    it('an apartment for sale has pets under "Más datos"; an apartment for rent asks for pets, guarantee and HOA fees', () => {
+      expect(fieldsIn({ ...houseSale, type: 'departamento' }, 'optional')).toContain('pets')
+      const rent = askedFields({ ...houseSale, type: 'departamento', operation: 'alquiler' })
+      expect(rent).toEqual(expect.arrayContaining(['pets', 'rentGuarantee', 'rentExpenses']))
+    })
+
+    it('a detected value is never hidden: "con baulera" on a house for sale goes to "Más datos"', () => {
+      const text = 'Vendo casa en Tiquipaya, 3 dorm, con baulera, $us 128.000'
+      const d = draftFromParsed(parseListing(text), text)
+      expect(d.storage).toBe(true)
+      expect(fieldsIn(d, 'optional')).toContain('storage')
+      expect(fieldsIn(d, 'notApplicable')).toEqual(['pets'])
+      const l = draftToListing(d, agent, now)
+      expect(l.storage).toBe(true)
+      expect(l.notApplicable).toEqual(['pets'])
+    })
+
+    it('"No aplica" moves a field to the last section and "Agregar" brings it back to its default section, keeping the value', () => {
+      const filled = { ...houseSale, docsOk: true }
+      const marked = markNotApplicable(filled, 'docsOk')
+      expect(askedFields(marked)).not.toContain('docsOk')
+      expect(fieldsIn(marked, 'notApplicable')).toContain('docsOk')
+      expect(draftToListing(marked, agent, now)).toMatchObject({ docsOk: null })
+      const back = addBack(marked, 'docsOk')
+      expect(askedFields(back)).toContain('docsOk')
+      expect(back.docsOk).toBe(true)
+      // A field that doesn't apply by default goes to "Más datos".
+      const pets = addBack(houseSale, 'pets')
+      expect(fieldsIn(pets, 'optional')).toContain('pets')
+      expect(fieldsIn(pets, 'notApplicable')).toEqual(['storage'])
+    })
+
+    it('"Agregar" on a recommended field puts it in "Te falta" (growPending)', () => {
+      const marked = markNotApplicable(houseSale, 'docsOk')
+      const pending = pendingAtStart(marked)
+      expect(pending).not.toContain('docsOk')
+      expect(growPending(pending, marked, addBack(marked, 'docsOk'))).toContain('docsOk')
+    })
+
+    it('switching from sale to rent moves pets to "Te falta", and it stays there once filled in', () => {
+      const pending = pendingAtStart(houseSale)
+      const rent = keepFilledFields({ ...houseSale, operation: 'alquiler' })
+      const grown = growPending(pending, houseSale, rent)
+      expect(grown).toContain('pets')
+      expect(growPending(grown, rent, { ...rent, pets: true })).toBe(grown)
+    })
+
+    it('a field the agent marked "No aplica" stays there when the operation changes', () => {
+      const marked = markNotApplicable({ ...houseSale, operation: 'alquiler' }, 'pets')
+      expect(fieldsIn({ ...marked, operation: 'anticretico' }, 'notApplicable')).toContain('pets')
+    })
+
+    it('a value that stops applying after a change moves to "Más datos", not to "No aplica"', () => {
+      const rent = { ...houseSale, operation: 'alquiler' as const, pets: true }
+      expect(fieldsIn(keepFilledFields({ ...rent, operation: 'venta' }), 'optional')).toContain('pets')
+    })
+
+    it('"X de Y" counts only required and recommended fields', () => {
+      expect(askedFields(houseSale)).toEqual(['operation', 'type', 'zone', 'price', 'bedrooms', 'bathrooms', 'builtM2', 'landM2', 'garage', 'bankCredit', 'docsOk', 'commissionShare'])
+    })
   })
 })

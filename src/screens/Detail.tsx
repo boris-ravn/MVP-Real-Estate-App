@@ -7,7 +7,8 @@ import { Gallery } from '../components/Gallery'
 import { ShareSheet } from '../components/ShareSheet'
 import { DEMO_MODE } from '../config'
 import { groupThousands, listingPrice, timeInNetwork } from '../domain/format'
-import { CLOSED_LABELS, OPERATION_LABELS, TYPE_LABELS, type Listing } from '../domain/listing'
+import { fieldLevel, notApplicableOf } from '../domain/fields'
+import { CLOSED_LABELS, OPERATION_LABELS, TYPE_LABELS, type DetailField, type Listing } from '../domain/listing'
 import { contactMessage, contactUrl } from '../domain/whatsapp'
 import { useStore } from '../store/context'
 import { logEvent } from '../store/events'
@@ -65,7 +66,10 @@ export function Detail() {
 /** Standard listing detail: same blocks, in the same order, for every property. */
 function ListingSheet({ listing: l }: { listing: Listing }) {
   const isRent = l.operation === 'alquiler'
-  const isLand = l.type === 'terreno'
+  const notApplicable = notApplicableOf(l)
+  // Fields that never apply to the type and operation are left out (PRD v3 D1).
+  const fact = (f: DetailField, label: string, value: FactValue): FactRow[] =>
+    fieldLevel(f, l) ? [[label, notApplicable.includes(f) ? NOT_APPLICABLE : value]] : []
   return (
     <div className="divide-y divide-slate-100">
       <Block icon={<Tag size={18} />} title="Precio y operación">
@@ -112,22 +116,14 @@ function ListingSheet({ listing: l }: { listing: Listing }) {
       <Block icon={<House size={18} />} title="Características">
         <Facts
           rows={[
-            ...(isLand
-              ? []
-              : ([
-                  ['Dormitorios', l.bedrooms],
-                  ['Baños', l.bathrooms],
-                  ['m² construidos', l.builtM2],
-                ] as const)),
-            ['m² de terreno', l.landM2],
-            ...(isLand
-              ? []
-              : ([
-                  ['Garaje', l.garage],
-                  ['Acepta mascotas', l.pets],
-                  ['Baulera', l.storage],
-                ] as const)),
-            ['Servicios básicos completos', l.utilities],
+            ...fact('bedrooms', 'Dormitorios', l.bedrooms),
+            ...fact('bathrooms', 'Baños', l.bathrooms),
+            ...fact('builtM2', 'm² construidos', l.builtM2),
+            ...fact('landM2', 'm² de terreno', l.landM2),
+            ...fact('garage', 'Garaje', l.garage),
+            ...fact('pets', 'Acepta mascotas', l.pets),
+            ...fact('storage', 'Baulera', l.storage),
+            ...fact('utilities', 'Servicios básicos completos', l.utilities),
           ]}
         />
       </Block>
@@ -135,14 +131,10 @@ function ListingSheet({ listing: l }: { listing: Listing }) {
       <Block icon={<FileText size={18} />} title="Condiciones">
         <Facts
           rows={[
-            ...(isRent ? [] : ([['Acepta crédito bancario', l.bankCredit]] as const)),
-            ['Documentación al día', l.docsOk],
-            ...(isRent
-              ? ([
-                  ['Garantía', l.rentGuarantee ?? null],
-                  ['Expensas', l.rentExpenses == null ? null : l.rentExpenses === 0 ? 'Incluidas' : `Bs ${groupThousands(l.rentExpenses)} / mes`],
-                ] as const)
-              : []),
+            ...fact('bankCredit', 'Acepta crédito bancario', l.bankCredit),
+            ...fact('docsOk', 'Documentación al día', l.docsOk),
+            ...fact('rentGuarantee', 'Garantía', l.rentGuarantee),
+            ...fact('rentExpenses', 'Expensas', l.rentExpenses == null ? null : l.rentExpenses === 0 ? 'Incluidas' : `Bs ${groupThousands(l.rentExpenses)} / mes`),
           ]}
         />
       </Block>
@@ -174,15 +166,20 @@ function Block({ icon, title, children }: { icon: ReactNode; title: string; chil
 }
 
 type FactValue = string | number | boolean | null | undefined
+/** The agent said the field doesn't apply: different from "Sin dato" (no data). */
+const NOT_APPLICABLE = Symbol('No aplica')
+type FactRow = readonly [string, FactValue | typeof NOT_APPLICABLE]
 
-function Facts({ rows }: { rows: ReadonlyArray<readonly [string, FactValue]> }) {
+function Facts({ rows }: { rows: ReadonlyArray<FactRow> }) {
   return (
     <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5">
       {rows.map(([label, value]) => (
         <div key={label} className="contents">
           <dt className="text-slate-700">{label}</dt>
           <dd className="text-right">
-            {value == null ? (
+            {value === NOT_APPLICABLE ? (
+              <span className="rounded-md px-1.5 text-sm text-slate-600 ring-1 ring-slate-300">No aplica</span>
+            ) : value == null ? (
               <span className="text-slate-500 italic">Sin dato</span>
             ) : typeof value === 'boolean' ? (
               <span className={`font-semibold ${value ? 'text-slate-900' : 'text-slate-500'}`}>{value ? 'Sí' : 'No'}</span>

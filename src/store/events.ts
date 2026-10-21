@@ -9,6 +9,8 @@ export type EventName =
   | 'publish_started'
   | 'publish_parsed'
   | 'publish_review_expanded'
+  | 'field_marked_na'
+  | 'field_added_back'
   | 'publish_completed'
   | 'confirm_available'
   | 'mark_closed'
