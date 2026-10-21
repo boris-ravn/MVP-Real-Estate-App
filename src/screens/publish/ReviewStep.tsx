@@ -1,4 +1,4 @@
-import { AlertCircle, Ban, Bath, BedDouble, Car, Check, FileCheck, Landmark, ListPlus, MapPin, Package, PawPrint, ShieldCheck, Sparkles, Zap } from 'lucide-react'
+import { AlertCircle, Ban, Bath, BedDouble, Car, Check, FileCheck, Landmark, ListPlus, MapPin, Package, PawPrint, Pencil, ShieldCheck, Sparkles, Zap } from 'lucide-react'
 import { Fragment, useState, type ReactNode } from 'react'
 import { Chip } from '../../components/Chip'
 import { PhotoPlaceholder } from '../../components/PhotoPlaceholder'
@@ -263,22 +263,36 @@ export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, 
       {manual ? (
         <p className="mb-2 text-sm text-slate-600">Completa los datos con un toque. Los marcados con * son obligatorios.</p>
       ) : (
-        // 1. Summary of what was detected
+        // 1. Summary of what was detected, inviting a review (D3 in PRD v3)
         <section className="mb-3 rounded-xl bg-brand-50 p-3 ring-1 ring-brand-100" aria-live="polite">
-          <div className="flex items-start justify-between gap-2">
-            <p className="flex items-center gap-2 text-sm text-slate-800">
-              <Sparkles size={18} className="shrink-0 text-brand-600" aria-hidden />
-              <span>
-                Detectamos <b>{detectedCount} de {asked.length}</b> datos.
-              </span>
-            </p>
-            {done.length > 0 && (
-              <button type="button" onClick={toggleEdit} aria-expanded={editing} className="-my-2 min-h-11 px-1 text-sm font-semibold text-brand-700 underline">
-                {editing ? 'Listo' : 'Editar'}
-              </button>
-            )}
-          </div>
-          {done.length > 0 && <p className="mt-1 text-base font-medium text-slate-900">{draftSummary(d, done)}</p>}
+          <p className="flex items-center gap-2 text-sm text-slate-800">
+            <Sparkles size={18} className="shrink-0 text-brand-600" aria-hidden />
+            <span>
+              Revisa lo que detectamos{' '}
+              <b>
+                ({detectedCount} de {asked.length})
+              </b>
+            </span>
+          </p>
+          {done.length > 0 && (
+            <>
+              <p className="mt-1 text-base font-medium text-slate-900">{draftSummary(d, done)}</p>
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <p className="text-sm text-slate-600">
+                  Si algo no está bien, toca <b>Editar</b>.
+                </p>
+                <button
+                  type="button"
+                  onClick={toggleEdit}
+                  aria-expanded={editing}
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 text-sm font-semibold text-brand-700 ring-1 ring-brand-600 active:bg-brand-50"
+                >
+                  {editing ? <Check size={16} aria-hidden /> : <Pencil size={16} aria-hidden />}
+                  {editing ? 'Listo' : 'Editar'}
+                </button>
+              </div>
+            </>
+          )}
           {editing && <div className="mt-2 rounded-lg bg-white px-3">{renderFields(done)}{description}</div>}
         </section>
       )}
