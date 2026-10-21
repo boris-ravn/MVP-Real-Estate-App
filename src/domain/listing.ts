@@ -87,6 +87,8 @@ export interface Listing {
   /** ISO datetime. */
   lastConfirmedAt: string
   status: ListingStatus
+  /** ISO datetime when it was marked sold/rented/closed; only while closed. */
+  closedAt?: string
   /** ISO datetime. */
   createdAt: string
   isMine: boolean

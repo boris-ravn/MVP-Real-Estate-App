@@ -15,8 +15,13 @@ export type Action =
   /** Undo "Confirmar todas": restores each one to its previous date. */
   | { type: 'restoreConfirmed'; previous: { id: string; lastConfirmedAt: string }[] }
   | { type: 'changePrice'; id: string; price: number; at: string }
-  | { type: 'markClosed'; id: string }
+  | { type: 'markClosed'; id: string; at: string }
+  /** Undo "Marcar vendida/alquilada" from the toast. */
   | { type: 'reopen'; id: string }
+  /** "Volver a publicar" from Cerradas (D2): active again, confirmed today. */
+  | { type: 'republish'; id: string; at: string }
+  /** Undo "Volver a publicar": closed again, with its previous dates. */
+  | { type: 'restoreClosed'; id: string; lastConfirmedAt: string; closedAt?: string }
   | { type: 'setProfile'; profile: Agent }
   | { type: 'reset'; state: AppState }
 
@@ -40,9 +45,14 @@ export function reducer(state: AppState, action: Action): AppState {
       // Changing the price also confirms the information is up to date.
       return { ...state, listings: update(state.listings, action.id, { price: action.price, lastConfirmedAt: action.at }) }
     case 'markClosed':
-      return { ...state, listings: update(state.listings, action.id, { status: 'closed' }) }
+      return { ...state, listings: update(state.listings, action.id, { status: 'closed', closedAt: action.at }) }
     case 'reopen':
-      return { ...state, listings: update(state.listings, action.id, { status: 'active' }) }
+      return { ...state, listings: update(state.listings, action.id, { status: 'active', closedAt: undefined }) }
+    case 'republish':
+      // If the agent publishes it again, it's because it's available: it counts as confirmed today.
+      return { ...state, listings: update(state.listings, action.id, { status: 'active', lastConfirmedAt: action.at, closedAt: undefined }) }
+    case 'restoreClosed':
+      return { ...state, listings: update(state.listings, action.id, { status: 'closed', lastConfirmedAt: action.lastConfirmedAt, closedAt: action.closedAt }) }
     case 'setProfile':
       // The participant's own listings now show their real profile.
       return {

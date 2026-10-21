@@ -14,6 +14,8 @@ export type EventName =
   | 'publish_completed'
   | 'confirm_available'
   | 'mark_closed'
+  | 'close_cancelled'
+  | 'listing_reopened'
 
 export interface TrackedEvent {
   name: EventName

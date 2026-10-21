@@ -56,16 +56,35 @@ describe('listings reducer', () => {
 
   it('"Marcar vendida" removes it from the public list but keeps it in my listings', () => {
     const id = myListings(initial.listings)[0].id
-    const s = reducer(initial, { type: 'markClosed', id })
+    const s = reducer(initial, { type: 'markClosed', id, at })
     expect(publicListings(s.listings).some((l) => l.id === id)).toBe(false)
     expect(myListings(s.listings).find((l) => l.id === id)!.status).toBe('closed')
   })
 
   it('"Deshacer" publishes it again', () => {
     const id = myListings(initial.listings)[0].id
-    const closed = reducer(initial, { type: 'markClosed', id })
+    const closed = reducer(initial, { type: 'markClosed', id, at })
     const reopened = reducer(closed, { type: 'reopen', id })
     expect(publicListings(reopened.listings).some((l) => l.id === id)).toBe(true)
+  })
+
+  it('"Volver a publicar" makes it active again, confirmed today and first in the public list (D2)', () => {
+    const id = myListings(initial.listings)[0].id
+    const closed = reducer(initial, { type: 'markClosed', id, at: '2026-01-01T12:00:00.000Z' })
+    expect(closed.listings.find((l) => l.id === id)!.closedAt).toBe('2026-01-01T12:00:00.000Z')
+    const later = '2099-01-01T12:00:00.000Z'
+    const s = reducer(closed, { type: 'republish', id, at: later })
+    expect(s.listings.find((l) => l.id === id)).toMatchObject({ status: 'active', lastConfirmedAt: later, closedAt: undefined })
+    expect(publicListings(s.listings)[0].id).toBe(id)
+  })
+
+  it('"Deshacer" after "Volver a publicar" closes it again with its previous dates (D2)', () => {
+    const id = myListings(initial.listings)[0].id
+    const closed = reducer(initial, { type: 'markClosed', id, at })
+    const before = closed.listings.find((l) => l.id === id)!
+    const republished = reducer(closed, { type: 'republish', id, at: '2099-01-01T12:00:00.000Z' })
+    const undone = reducer(republished, { type: 'restoreClosed', id, lastConfirmedAt: before.lastConfirmedAt, closedAt: before.closedAt })
+    expect(undone.listings.find((l) => l.id === id)).toEqual(before)
   })
 
   it('after registering the profile, own listings show it', () => {

@@ -1,6 +1,6 @@
-import { ArrowLeft, BellRing, Flag, Plus, RefreshCw, Share2, Tag } from 'lucide-react'
+import { ArrowLeft, BellRing, Flag, Plus, RefreshCw, RotateCcw, Share2, Tag } from 'lucide-react'
 import { useCallback, useState, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { BottomSheet } from '../components/BottomSheet'
 import { FreshnessBadge } from '../components/FreshnessBadge'
 import { PhotoPlaceholder } from '../components/PhotoPlaceholder'
@@ -13,20 +13,22 @@ import { useStore } from '../store/context'
 import { logEvent } from '../store/events'
 import { myListings, pendingFirstOrder } from '../store/listingsReducer'
 
-const CLOSE_LABEL: Record<Operation, { action: string; done: string }> = {
-  venta: { action: 'Marcar vendida', done: CLOSED_LABELS.venta },
-  alquiler: { action: 'Marcar alquilada', done: CLOSED_LABELS.alquiler },
-  anticretico: { action: 'Marcar cerrada', done: CLOSED_LABELS.anticretico },
+const CLOSE_LABEL: Record<Operation, { action: string; done: string; question: string; confirm: string }> = {
+  venta: { action: 'Marcar vendida', done: CLOSED_LABELS.venta, question: '¿Marcar como vendida?', confirm: 'Sí, marcar vendida' },
+  alquiler: { action: 'Marcar alquilada', done: CLOSED_LABELS.alquiler, question: '¿Marcar como alquilada?', confirm: 'Sí, marcar alquilada' },
+  anticretico: { action: 'Marcar cerrada', done: CLOSED_LABELS.anticretico, question: '¿Marcar como cerrada?', confirm: 'Sí, marcar cerrada' },
 }
-
 const nowIso = () => new Date().toISOString()
 let toastSeq = 0
 
 export function MyListings() {
   const { state, dispatch } = useStore()
   const navigate = useNavigate()
-  const [tab, setTab] = useState<'active' | 'closed'>('active')
+  const [params] = useSearchParams()
+  // ?ver=cerradas opens the Cerradas tab (link from the sheet of an own closed listing).
+  const [tab, setTab] = useState<'active' | 'closed'>(params.get('ver') === 'cerradas' ? 'closed' : 'active')
   const [priceFor, setPriceFor] = useState<Listing | null>(null)
+  const [closeFor, setCloseFor] = useState<Listing | null>(null)
   const [shareFor, setShareFor] = useState<Listing | null>(null)
   const [toast, setToast] = useState<ToastData | null>(null)
   const clearToast = useCallback(() => setToast(null), [])
@@ -58,12 +60,28 @@ export function MyListings() {
     })
   }
 
+  // D2: closing asks for confirmation first; only confirmed closings are logged as mark_closed.
   const close = (l: Listing) => {
-    dispatch({ type: 'markClosed', id: l.id })
+    setCloseFor(null)
+    dispatch({ type: 'markClosed', id: l.id, at: nowIso() })
     logEvent('mark_closed', { listingId: l.id, operation: l.operation })
     show(`${CLOSE_LABEL[l.operation].done}: ya no aparece en el listado.`, {
       label: 'Deshacer',
       onClick: () => dispatch({ type: 'reopen', id: l.id }),
+    })
+  }
+  const cancelClose = () => {
+    if (closeFor) logEvent('close_cancelled', { listingId: closeFor.id, operation: closeFor.operation })
+    setCloseFor(null)
+  }
+
+  const republish = (l: Listing) => {
+    dispatch({ type: 'republish', id: l.id, at: nowIso() })
+    logEvent('listing_reopened', { listingId: l.id, daysClosed: l.closedAt ? daysSince(l.closedAt) : null })
+    setTab('active')
+    show('Publicada de nuevo · Confirmado hoy', {
+      label: 'Deshacer',
+      onClick: () => dispatch({ type: 'restoreClosed', id: l.id, lastConfirmedAt: l.lastConfirmedAt, closedAt: l.closedAt }),
     })
   }
 
@@ -130,8 +148,9 @@ export function MyListings() {
             needsConfirm={l.status === 'active' && needsConfirmation(l.lastConfirmedAt)}
             onConfirm={() => confirm(l)}
             onChangePrice={() => setPriceFor(l)}
-            onClose={() => close(l)}
+            onClose={() => setCloseFor(l)}
             onShare={() => setShareFor(l)}
+            onRepublish={() => republish(l)}
           />
         ))}
 
@@ -152,6 +171,7 @@ export function MyListings() {
       </main>
 
       <ShareSheet listing={shareFor} source="my_listings" onClose={() => setShareFor(null)} />
+      <CloseSheet listing={closeFor} onCancel={cancelClose} onConfirm={close} />
       <PriceSheet
         listing={priceFor}
         onClose={() => setPriceFor(null)}
@@ -183,6 +203,7 @@ function MyListingCard({
   onChangePrice,
   onClose,
   onShare,
+  onRepublish,
 }: {
   listing: Listing
   needsConfirm: boolean
@@ -190,6 +211,7 @@ function MyListingCard({
   onChangePrice: () => void
   onClose: () => void
   onShare: () => void
+  onRepublish: () => void
 }) {
   const isClosed = l.status === 'closed'
   return (
@@ -208,6 +230,13 @@ function MyListingCard({
           )}
         </div>
       </Link>
+      {isClosed && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <ActionButton onClick={onRepublish} icon={<RotateCcw size={16} aria-hidden />}>
+            Volver a publicar
+          </ActionButton>
+        </div>
+      )}
       {!isClosed && (
         <div className="mt-3 flex flex-wrap gap-2">
           <ActionButton primary={needsConfirm} onClick={onConfirm} icon={<RefreshCw size={16} aria-hidden />}>
@@ -240,6 +269,33 @@ function ActionButton({ primary = false, onClick, icon, children }: { primary?: 
       {icon}
       {children}
     </button>
+  )
+}
+
+/** D2: confirmation before closing, naming the listing so a mis-tap is easy to spot. */
+function CloseSheet({ listing, onCancel, onConfirm }: { listing: Listing | null; onCancel: () => void; onConfirm: (l: Listing) => void }) {
+  const label = listing ? CLOSE_LABEL[listing.operation] : null
+  return (
+    <BottomSheet open={!!listing} onClose={onCancel} title={label?.question ?? ''}>
+      {listing && label && (
+        <div className="space-y-4 pt-1 pb-2">
+          <p className="text-base">
+            <b>
+              {TYPE_LABELS[listing.type]} en {listing.zone}
+            </b>{' '}
+            ({listingPrice(listing)}). Ya no aparecerá en el listado.
+          </p>
+          <div className="flex gap-2">
+            <button type="button" onClick={onCancel} className="min-h-12 flex-1 rounded-xl font-semibold text-slate-800 ring-1 ring-slate-300 active:bg-slate-100">
+              Cancelar
+            </button>
+            <button type="button" onClick={() => onConfirm(listing)} className="min-h-12 flex-[1.4] rounded-xl bg-brand-600 font-semibold text-white active:bg-brand-700">
+              {label.confirm}
+            </button>
+          </div>
+        </div>
+      )}
+    </BottomSheet>
   )
 }
 

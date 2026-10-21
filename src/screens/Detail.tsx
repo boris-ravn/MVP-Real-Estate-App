@@ -87,6 +87,15 @@ function ListingSheet({ listing: l }: { listing: Listing }) {
           <>
             <span className="inline-flex rounded-full bg-slate-200 px-2.5 py-1 text-sm font-medium text-slate-700">Ya no está disponible · {CLOSED_LABELS[l.operation]}</span>
             <p className="mt-1 text-sm text-slate-600">Ya no aparece en el listado.</p>
+            {l.isMine && (
+              <p className="mt-1 text-sm text-slate-600">
+                Puedes volver a publicarla desde{' '}
+                <Link to="/mis-propiedades?ver=cerradas" className="font-medium text-brand-700 underline">
+                  Mis propiedades → Cerradas
+                </Link>
+                .
+              </p>
+            )}
           </>
         ) : (
           <>
