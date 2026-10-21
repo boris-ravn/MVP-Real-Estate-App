@@ -85,7 +85,11 @@ export function MyListings() {
     setTab('active')
     show('Publicada de nuevo · Confirmado hoy', {
       label: 'Deshacer',
-      onClick: () => dispatch({ type: 'restoreClosed', id: l.id, lastConfirmedAt: l.lastConfirmedAt, closedAt: l.closedAt }),
+      onClick: () => {
+        dispatch({ type: 'restoreClosed', id: l.id, lastConfirmedAt: l.lastConfirmedAt, closedAt: l.closedAt })
+        // listing_reopened was already logged: this tells an undone republish from a final one.
+        logEvent('reopen_undone', { listingId: l.id })
+      },
     })
   }
 

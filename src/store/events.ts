@@ -17,6 +17,7 @@ export type EventName =
   | 'close_cancelled'
   | 'close_undone'
   | 'listing_reopened'
+  | 'reopen_undone'
 
 export interface TrackedEvent {
   name: EventName
