@@ -67,7 +67,11 @@ export function MyListings() {
     logEvent('mark_closed', { listingId: l.id, operation: l.operation })
     show(`${CLOSE_LABEL[l.operation].done}: ya no aparece en el listado.`, {
       label: 'Deshacer',
-      onClick: () => dispatch({ type: 'reopen', id: l.id }),
+      onClick: () => {
+        dispatch({ type: 'reopen', id: l.id })
+        // mark_closed was already logged: this tells a mis-tap undone from a final close.
+        logEvent('close_undone', { listingId: l.id, operation: l.operation })
+      },
     })
   }
   const cancelClose = () => {

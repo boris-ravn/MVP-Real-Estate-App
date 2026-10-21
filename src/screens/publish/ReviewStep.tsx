@@ -7,6 +7,7 @@ import {
   askedFields,
   draftCurrency,
   draftSummary,
+  fieldEventData,
   FIELD_LABELS,
   fieldsIn,
   growPending,
@@ -17,7 +18,6 @@ import {
   type Draft,
   type DraftField,
 } from '../../domain/draft'
-import { fieldLevel } from '../../domain/fields'
 import { OPERATION_LABELS, PHOTO_IDS, TYPE_LABELS, ZONES, type DetailField, type Operation, type PropertyType, type Zone } from '../../domain/listing'
 import { logEvent } from '../../store/events'
 
@@ -83,12 +83,14 @@ export function ReviewStep({ draft: d, setDraft, detected, suggested, zoneHint, 
   const [showOptional, setShowOptional] = useState(false)
   const [showNotApplicable, setShowNotApplicable] = useState(false)
   const markNA = (f: DetailField) => {
-    logEvent('field_marked_na', { field: f, level: fieldLevel(f, d) })
+    // `section`: where the agent took it from ("Te falta", the summary or "Más datos").
+    logEvent('field_marked_na', fieldEventData(d, f))
     update(markNotApplicable(d, f))
   }
   const addFieldBack = (f: DetailField) => {
-    logEvent('field_added_back', { field: f })
     const next = addBack(d, f)
+    // `section`: where the field went back to.
+    logEvent('field_added_back', fieldEventData(next, f))
     // Open "Más datos" so the agent sees where the field went.
     if (sectionOf(f, next) === 'optional') setShowOptional(true)
     update(next)

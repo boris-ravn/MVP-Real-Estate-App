@@ -137,6 +137,14 @@ export function addBack(d: Draft, f: DetailField): Draft {
 }
 
 /**
+ * Data for the "No aplica" / "Agregar" events: the matrix cell (field, operation, type and its
+ * default level) and the section the field is in, to see which cells of the matrix to correct.
+ */
+export function fieldEventData(d: Draft, f: DetailField) {
+  return { field: f, operation: d.operation, type: d.type, level: fieldLevel(f, d), section: sectionOf(f, d) }
+}
+
+/**
  * Fields that go in "Te falta" (Missing) on reaching Revisar (C2): relevant ones without data plus suggested ones.
  * Computed only once, so a field doesn't jump to the summary while the agent is filling it in.
  */

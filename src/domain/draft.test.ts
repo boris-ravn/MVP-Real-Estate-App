@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseListing } from '../parser/parseListing'
 import { SEED_MESSAGES } from '../seed/messages'
-import { addBack, askedFields, draftCurrency, draftFromParsed, draftSummary, draftToListing, EMPTY_DRAFT, fieldsIn, growPending, keepFilledFields, markNotApplicable, missingRequired, pendingAtStart, type Draft } from './draft'
+import { addBack, askedFields, draftCurrency, fieldEventData, draftFromParsed, draftSummary, draftToListing, EMPTY_DRAFT, fieldsIn, growPending, keepFilledFields, markNotApplicable, missingRequired, pendingAtStart, type Draft } from './draft'
 
 const agent = { name: 'Ana Pérez', whatsapp: '+59171234567', memberSince: '2026-10-15T12:00:00.000Z' }
 const now = new Date(2026, 9, 15, 12)
@@ -181,6 +181,17 @@ describe('publish draft', () => {
     it('a value that stops applying after a change moves to "Más datos", not to "No aplica"', () => {
       const rent = { ...houseSale, operation: 'alquiler' as const, pets: true }
       expect(fieldsIn(keepFilledFields({ ...rent, operation: 'venta' }), 'optional')).toContain('pets')
+    })
+
+    it('"No aplica" and "Agregar" events say which matrix cell and section they refer to', () => {
+      const text = 'Vendo casa en Tiquipaya, 3 dorm, con baulera, $us 128.000'
+      const d = draftFromParsed(parseListing(text), text)
+      // Storage doesn't apply by default to a house for sale, but it came with a value, so it's under "Más datos".
+      expect(fieldEventData(d, 'storage')).toEqual({ field: 'storage', operation: 'venta', type: 'casa', level: 'notApplicable', section: 'optional' })
+      expect(fieldEventData(d, 'garage')).toMatchObject({ level: 'recommended', section: 'asked' })
+      const back = addBack(markNotApplicable(d, 'garage'), 'garage')
+      expect(fieldEventData(back, 'garage')).toMatchObject({ section: 'asked' })
+      expect(fieldEventData(addBack(d, 'pets'), 'pets')).toMatchObject({ level: 'notApplicable', section: 'optional' })
     })
 
     it('"X de Y" counts only required and recommended fields', () => {
